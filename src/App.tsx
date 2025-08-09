@@ -1,7 +1,7 @@
 function App() {
     return (
         <>
-            <h1>Diky's Personal Site</h1>
+            <h1>Diky's Personal Site (Coming Soon)</h1>
         </>
     );
 }
