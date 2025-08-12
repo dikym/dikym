@@ -20,17 +20,17 @@ const AboutSection: React.FC = () => {
     return (
         <section
             id="about"
-            className="py-20 bg-gray-50"
+            className="bg-gray-50 py-20"
             style={{ scrollMarginTop: "60px" }}
         >
-            <div className="max-w-5xl mx-auto px-6">
-                <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <div className="mx-auto max-w-5xl px-6">
+                <div className="grid items-center gap-16 lg:grid-cols-2">
                     <div>
-                        <h2 className="text-3xl md:text-4xl font-bold mb-8 text-gray-900">
+                        <h2 className="mb-8 text-3xl font-bold text-gray-900 md:text-4xl">
                             About Me
                         </h2>
                         <div className="space-y-6">
-                            <p className="text-lg text-gray-600 leading-relaxed">
+                            <p className="text-lg leading-relaxed text-gray-600">
                                 I'm a passionate web developer with over{" "}
                                 <span className="font-semibold text-gray-900">
                                     2+ years
@@ -47,7 +47,7 @@ const AboutSection: React.FC = () => {
                                 and accumulated thousands of productive
                                 development hours.
                             </p>
-                            <p className="text-lg text-gray-600 leading-relaxed">
+                            <p className="text-lg leading-relaxed text-gray-600">
                                 What drives me is the perfect blend of{" "}
                                 <span className="font-semibold text-gray-900">
                                     technical precision
@@ -61,7 +61,7 @@ const AboutSection: React.FC = () => {
                                 adaptability, and a commitment to delivering
                                 high-quality outcomes that exceed expectations.
                             </p>
-                            <p className="text-lg text-gray-600 leading-relaxed">
+                            <p className="text-lg leading-relaxed text-gray-600">
                                 Whether working independently or collaborating
                                 with cross-functional teams, I thrive on turning
                                 complex challenges into elegant, performant
@@ -70,15 +70,15 @@ const AboutSection: React.FC = () => {
                         </div>
                     </div>
                     <div className="relative">
-                        <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-200">
+                        <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-lg">
                             <div className="space-y-6">
                                 {stats.map((stat, index) => (
                                     <div
                                         key={index}
                                         className="flex items-center gap-4"
                                     >
-                                        <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
-                                            <span className="text-gray-600 font-bold text-lg">
+                                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100">
+                                            <span className="text-lg font-bold text-gray-600">
                                                 {stat.number}
                                             </span>
                                         </div>

@@ -25,20 +25,20 @@ const Navigation: React.FC<NavigationProps> = ({
     ];
 
     return (
-        <nav className="fixed top-0 left-0 right-0 bg-white/90 backdrop-blur-md border-b border-gray-100 z-50 shadow-sm">
-            <div className="max-w-5xl mx-auto px-6 py-4">
-                <div className="flex justify-between items-center">
-                    <div className="text-xl font-bold text-gray-900 font-mono">
+        <nav className="fixed top-0 right-0 left-0 z-50 border-b border-gray-100 bg-white/90 shadow-sm backdrop-blur-md">
+            <div className="mx-auto max-w-5xl px-6 py-4">
+                <div className="flex items-center justify-between">
+                    <div className="font-mono text-xl font-bold text-gray-900">
                         dikym
                     </div>
 
                     {/* Desktop Navigation */}
-                    <div className="hidden md:flex space-x-8">
+                    <div className="hidden space-x-8 md:flex">
                         {navigationItems.map(section => (
                             <button
                                 key={section.id}
                                 onClick={() => onScrollToSection(section.id)}
-                                className={`text-sm font-medium transition-all duration-300 pb-1 relative cursor-pointer ${
+                                className={`relative cursor-pointer pb-1 text-sm font-medium transition-all duration-300 ${
                                     activeSection === section.id
                                         ? "text-gray-900"
                                         : "text-gray-600 hover:text-gray-900"
@@ -46,7 +46,7 @@ const Navigation: React.FC<NavigationProps> = ({
                             >
                                 {section.label}
                                 {activeSection === section.id && (
-                                    <span className="absolute bottom-0 left-0 w-full h-0.5 bg-gray-900 rounded-full"></span>
+                                    <span className="absolute bottom-0 left-0 h-0.5 w-full rounded-full bg-gray-900"></span>
                                 )}
                             </button>
                         ))}
@@ -54,14 +54,14 @@ const Navigation: React.FC<NavigationProps> = ({
 
                     {/* Mobile Menu Button */}
                     <button
-                        className="md:hidden hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                        className="rounded-lg transition-colors duration-200 hover:bg-gray-100 md:hidden"
                         onClick={onToggleMobileMenu}
                     >
-                        <div className="w-6 h-6 grid grid-cols-2 gap-1">
-                            <div className="w-2 h-2 bg-gray-900 rounded-full"></div>
-                            <div className="w-2 h-2 bg-gray-900 rounded-full"></div>
-                            <div className="w-2 h-2 bg-gray-900 rounded-full"></div>
-                            <div className="w-2 h-2 bg-gray-900 rounded-full"></div>
+                        <div className="grid h-6 w-6 grid-cols-2 gap-1">
+                            <div className="h-2 w-2 rounded-full bg-gray-900"></div>
+                            <div className="h-2 w-2 rounded-full bg-gray-900"></div>
+                            <div className="h-2 w-2 rounded-full bg-gray-900"></div>
+                            <div className="h-2 w-2 rounded-full bg-gray-900"></div>
                         </div>
                     </button>
                 </div>

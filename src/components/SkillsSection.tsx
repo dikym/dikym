@@ -7,19 +7,19 @@ interface SkillsSectionProps {
 
 const SkillsSection: React.FC<SkillsSectionProps> = ({ skillsData }) => {
     return (
-        <section className="py-20 bg-white">
-            <div className="max-w-5xl mx-auto px-6">
-                <div className="text-center mb-16">
-                    <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">
+        <section className="bg-white py-20">
+            <div className="mx-auto max-w-5xl px-6">
+                <div className="mb-16 text-center">
+                    <h2 className="mb-4 text-3xl font-bold text-gray-900 md:text-4xl">
                         Skills & Technologies
                     </h2>
-                    <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                    <p className="mx-auto max-w-2xl text-lg text-gray-600">
                         A comprehensive toolkit I've mastered to build modern,
                         scalable web applications
                     </p>
                 </div>
 
-                <div className="grid md:grid-cols-3 gap-8">
+                <div className="grid gap-8 md:grid-cols-3">
                     {skillsData.map((category, categoryIndex) => (
                         <SkillCard key={categoryIndex} category={category} />
                     ))}

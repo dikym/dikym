@@ -13,20 +13,20 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
     onClose,
 }) => {
     return (
-        <div className="fixed inset-0 bg-white z-50 md:hidden">
-            <div className="flex flex-col h-screen bg-white">
+        <div className="fixed inset-0 z-50 bg-white md:hidden">
+            <div className="flex h-screen flex-col bg-white">
                 {/* Mobile Menu Header */}
-                <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100">
-                    <div className="text-xl font-bold text-gray-900 font-mono">
+                <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+                    <div className="font-mono text-xl font-bold text-gray-900">
                         dikym
                     </div>
                     <button
                         onClick={onClose}
-                        className="hover:bg-gray-100 rounded-lg transition-colors duration-200 touch-manipulation"
+                        className="touch-manipulation rounded-lg transition-colors duration-200 hover:bg-gray-100"
                         aria-label="Close menu"
                     >
                         <svg
-                            className="w-6 h-6"
+                            className="h-6 w-6"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -41,13 +41,13 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
                     </button>
                 </div>
 
-                <div className="flex-1 flex items-center justify-center">
-                    <div className="space-y-8 text-center w-full px-6">
+                <div className="flex flex-1 items-center justify-center">
+                    <div className="w-full space-y-8 px-6 text-center">
                         {navigationItems.map(section => (
                             <button
                                 key={section.id}
                                 onClick={() => onScrollToSection(section.id)}
-                                className="block w-full text-3xl font-bold transition-all duration-300 py-3 rounded-lg touch-manipulation"
+                                className="block w-full touch-manipulation rounded-lg py-3 text-3xl font-bold transition-all duration-300"
                             >
                                 {section.label}
                             </button>

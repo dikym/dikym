@@ -12,9 +12,9 @@ const ProjectsSection: React.FC<ProjectsSectionProps> = ({ projects }) => {
             className="py-20"
             style={{ scrollMarginTop: "60px" }}
         >
-            <div className="max-w-5xl mx-auto px-6">
+            <div className="mx-auto max-w-5xl px-6">
                 <div className="mb-16">
-                    <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">
+                    <h2 className="mb-4 text-3xl font-bold text-gray-900 md:text-4xl">
                         Projects
                     </h2>
                     <p className="text-lg text-gray-600">

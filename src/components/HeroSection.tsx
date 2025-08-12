@@ -9,28 +9,28 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onScrollToSection }) => {
             className="pt-32 pb-20"
             style={{ scrollMarginTop: "60px" }}
         >
-            <div className="max-w-5xl mx-auto px-6">
+            <div className="mx-auto max-w-5xl px-6">
                 <div className="max-w-4xl">
                     <div className="mb-8">
-                        <h1 className="text-4xl md:text-6xl font-bold leading-tight mb-6 text-gray-900">
+                        <h1 className="mb-6 text-4xl leading-tight font-bold text-gray-900 md:text-6xl">
                             Building fast, impactful web experiences across the
                             full stack.
                         </h1>
-                        <p className="text-xl text-gray-600 leading-relaxed mb-8 max-w-3xl">
+                        <p className="mb-8 max-w-3xl text-xl leading-relaxed text-gray-600">
                             Passionate web developer with a special love for
                             crafting clean, user-friendly interfaces that
                             perform smoothly and deliver exceptional user
                             experiences.
                         </p>
                     </div>
-                    <div className="flex flex-col sm:flex-row gap-4 mb-16">
+                    <div className="mb-16 flex flex-col gap-4 sm:flex-row">
                         <button
                             onClick={() => onScrollToSection("projects")}
-                            className="bg-gray-900 text-white px-8 py-3 rounded-lg font-medium hover:bg-gray-800 transition-all duration-200 flex items-center gap-2 justify-center hover:shadow-lg hover:-translate-y-0.5"
+                            className="flex items-center justify-center gap-2 rounded-lg bg-gray-900 px-8 py-3 font-medium text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-gray-800 hover:shadow-lg"
                         >
                             View Projects
                             <svg
-                                className="w-4 h-4"
+                                className="h-4 w-4"
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
@@ -45,7 +45,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onScrollToSection }) => {
                         </button>
                         <button
                             onClick={() => onScrollToSection("contact")}
-                            className="border border-gray-300 px-8 py-3 rounded-lg font-medium hover:border-gray-400 hover:bg-gray-50 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5"
+                            className="rounded-lg border border-gray-300 px-8 py-3 font-medium transition-all duration-200 hover:-translate-y-0.5 hover:border-gray-400 hover:bg-gray-50 hover:shadow-lg"
                         >
                             Get In Touch
                         </button>

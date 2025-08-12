@@ -1,16 +1,16 @@
 const SocialLinks: React.FC = () => {
     return (
-        <div className="px-4 sm:px-6 py-8 border-t border-gray-100">
+        <div className="border-t border-gray-100 px-4 py-8 sm:px-6">
             <div className="flex justify-center gap-8">
                 <a
                     href="https://linkedin.com/in/dikym"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-gray-400 hover:text-gray-600 transition-colors duration-200 p-2 hover:bg-gray-100 rounded-lg touch-manipulation"
+                    className="touch-manipulation rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-600"
                     aria-label="LinkedIn"
                 >
                     <svg
-                        className="w-6 h-6"
+                        className="h-6 w-6"
                         fill="currentColor"
                         viewBox="0 0 24 24"
                     >
@@ -21,11 +21,11 @@ const SocialLinks: React.FC = () => {
                     href="https://github.com/dikym"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-gray-400 hover:text-gray-600 transition-colors duration-200 p-2 hover:bg-gray-100 rounded-lg touch-manipulation"
+                    className="touch-manipulation rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-600"
                     aria-label="GitHub"
                 >
                     <svg
-                        className="w-6 h-6"
+                        className="h-6 w-6"
                         fill="currentColor"
                         viewBox="0 0 24 24"
                     >
@@ -38,11 +38,11 @@ const SocialLinks: React.FC = () => {
                 </a>
                 <a
                     href="mailto:890dikymaulidan@gmail.com"
-                    className="text-gray-400 hover:text-gray-600 transition-colors duration-200 p-2 hover:bg-gray-100 rounded-lg touch-manipulation"
+                    className="touch-manipulation rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-600"
                     aria-label="Email"
                 >
                     <svg
-                        className="w-6 h-6"
+                        className="h-6 w-6"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"

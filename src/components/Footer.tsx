@@ -1,9 +1,9 @@
 const Footer: React.FC = () => {
     return (
-        <footer className="py-8 border-t border-gray-200">
-            <div className="max-w-5xl mx-auto px-6">
-                <div className="flex flex-col md:flex-row items-center justify-between">
-                    <p className="text-gray-500 text-sm mb-4 md:mb-0">
+        <footer className="border-t border-gray-200 py-8">
+            <div className="mx-auto max-w-5xl px-6">
+                <div className="flex flex-col items-center justify-between md:flex-row">
+                    <p className="mb-4 text-sm text-gray-500 md:mb-0">
                         © 2025 Diky Maulidan. All rights reserved.
                     </p>
                     <div className="flex items-center gap-4">
@@ -11,10 +11,10 @@ const Footer: React.FC = () => {
                             href="https://linkedin.com/in/dikym"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-gray-400 hover:text-gray-600 transition-colors duration-200 hover:-translate-y-0.5"
+                            className="text-gray-400 transition-colors duration-200 hover:-translate-y-0.5 hover:text-gray-600"
                         >
                             <svg
-                                className="w-4 h-4"
+                                className="h-4 w-4"
                                 fill="currentColor"
                                 viewBox="0 0 24 24"
                             >
@@ -25,10 +25,10 @@ const Footer: React.FC = () => {
                             href="https://github.com/dikym"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-gray-400 hover:text-gray-600 transition-colors duration-200 hover:-translate-y-0.5"
+                            className="text-gray-400 transition-colors duration-200 hover:-translate-y-0.5 hover:text-gray-600"
                         >
                             <svg
-                                className="w-5 h-5"
+                                className="h-5 w-5"
                                 fill="currentColor"
                                 viewBox="0 0 24 24"
                             >
@@ -41,10 +41,10 @@ const Footer: React.FC = () => {
                         </a>
                         <a
                             href="mailto:890dikymaulidan@gmail.com"
-                            className="text-gray-400 hover:text-gray-600 transition-colors duration-200 hover:-translate-y-0.5"
+                            className="text-gray-400 transition-colors duration-200 hover:-translate-y-0.5 hover:text-gray-600"
                         >
                             <svg
-                                className="w-5 h-5"
+                                className="h-5 w-5"
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"

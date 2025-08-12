@@ -6,11 +6,11 @@ interface ProjectCardProps {
 
 const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
     return (
-        <div className="group relative bg-white border border-gray-200 rounded-2xl p-8 hover:border-gray-300 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-            <div className="flex items-start justify-between mb-6">
+        <div className="group relative rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:-translate-y-1 hover:border-gray-300 hover:shadow-xl">
+            <div className="mb-6 flex items-start justify-between">
                 <div className="flex items-center gap-3">
                     <div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-1">
+                        <h3 className="mb-1 text-xl font-bold text-gray-900">
                             {project.title}
                         </h3>
                     </div>
@@ -19,10 +19,10 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
                     href={`https://${project.url}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-2 hover:bg-gray-100 rounded-lg"
+                    className="rounded-lg p-2 opacity-0 transition-opacity duration-300 group-hover:opacity-100 hover:bg-gray-100"
                 >
                     <svg
-                        className="w-5 h-5 text-gray-600"
+                        className="h-5 w-5 text-gray-600"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -37,32 +37,32 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
                 </a>
             </div>
 
-            <p className="text-gray-600 leading-relaxed mb-6">
+            <p className="mb-6 leading-relaxed text-gray-600">
                 {project.description}
             </p>
 
-            <div className="flex flex-wrap gap-2 mb-6">
+            <div className="mb-6 flex flex-wrap gap-2">
                 {project.tech.map((tech, techIndex) => (
                     <span
                         key={techIndex}
-                        className="text-xs font-medium text-gray-600 bg-gray-100 px-3 py-2 rounded-full border transition-colors duration-200"
+                        className="rounded-full border bg-gray-100 px-3 py-2 text-xs font-medium text-gray-600 transition-colors duration-200"
                     >
                         {tech}
                     </span>
                 ))}
             </div>
 
-            <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+            <div className="flex items-center justify-between border-t border-gray-100 pt-4">
                 <span className="text-sm text-gray-500">{project.url}</span>
                 <a
                     href={`https://${project.url}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors duration-200 group/link"
+                    className="group/link inline-flex items-center gap-2 text-sm font-medium text-gray-900 transition-colors duration-200 hover:text-gray-600"
                 >
                     View Live
                     <svg
-                        className="w-4 h-4 group-hover/link:translate-x-1 transition-transform duration-200"
+                        className="h-4 w-4 transition-transform duration-200 group-hover/link:translate-x-1"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -77,7 +77,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
                 </a>
             </div>
 
-            <div className="absolute inset-0 bg-gray-400 opacity-0 group-hover:opacity-5 transition-opacity duration-300 rounded-2xl pointer-events-none"></div>
+            <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gray-400 opacity-0 transition-opacity duration-300 group-hover:opacity-5"></div>
         </div>
     );
 };
