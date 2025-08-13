@@ -1,4 +1,4 @@
-import type { SkillCategory } from "../types";
+import type { SkillCategory } from "../../types";
 
 interface SkillCardProps {
     category: SkillCategory;
@@ -23,7 +23,7 @@ const SkillCard: React.FC<SkillCardProps> = ({ category }) => {
                     >
                         <div className="h-6 w-6 flex-shrink-0">
                             <img
-                                src={skill.logo}
+                                src={`icons/${skill.logo}`}
                                 alt={`${skill.name} logo`}
                                 className="h-full w-full object-contain"
                             />

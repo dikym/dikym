@@ -1,5 +1,5 @@
-import type { Project } from "../types";
-import ProjectCard from "../components/ProjectCard";
+import type { Project } from "../../types";
+import ProjectCard from "../ui/ProjectCard.tsx";
 
 interface ProjectsSectionProps {
     projects: Project[];

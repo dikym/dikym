@@ -1,11 +1,11 @@
 import React, { useState } from "react";
-import Navigation from "./components/Navigation";
-import HeroSection from "./components/HeroSection";
-import AboutSection from "./components/AboutSection";
-import SkillsSection from "./components/SkillsSection";
-import ProjectsSection from "./components/ProjectsSection";
-import ContactSection from "./components/ContactSection";
-import Footer from "./components/Footer";
+import Navigation from "./components/layout/Navigation.tsx";
+import HeroSection from "./components/sections/HeroSection.tsx";
+import AboutSection from "./components/sections/AboutSection.tsx";
+import SkillsSection from "./components/sections/SkillsSection.tsx";
+import ProjectsSection from "./components/sections/ProjectsSection.tsx";
+import ContactSection from "./components/common/ContactSection.tsx";
+import Footer from "./components/layout/Footer.tsx";
 import { useActiveSection } from "./hooks/useActiveSection";
 import { useScrollToSection } from "./hooks/useScrollToSection";
 import { skillsData } from "./data/skillsData";

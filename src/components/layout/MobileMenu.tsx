@@ -1,5 +1,5 @@
-import type { NavigationItem } from "../types";
-import SocialLinks from "./SocialLinks";
+import type { NavigationItem } from "../../types";
+import SocialLinks from "../ui/SocialLinks.tsx";
 
 interface MobileMenuProps {
     navigationItems: NavigationItem[];

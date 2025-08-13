@@ -1,5 +1,5 @@
-import SkillCard from "../components/SkillCard";
-import type { SkillCategory } from "../types";
+import SkillCard from "../ui/SkillCard.tsx";
+import type { SkillCategory } from "../../types";
 
 interface SkillsSectionProps {
     skillsData: SkillCategory[];

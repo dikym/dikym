@@ -1,6 +1,6 @@
 import React from "react";
-import type { NavigationItem } from "../types";
-import MobileMenu from "../components/MobileMenu";
+import type { NavigationItem } from "../../types";
+import MobileMenu from "./MobileMenu.tsx";
 
 interface NavigationProps {
     activeSection: string;
