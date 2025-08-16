@@ -26,7 +26,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onScrollToSection }) => {
                     <div className="mb-16 flex flex-col gap-4 sm:flex-row">
                         <button
                             onClick={() => onScrollToSection("projects")}
-                            className="flex items-center justify-center gap-2 rounded-lg bg-gray-900 px-8 py-3 font-medium text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-gray-800 hover:shadow-lg"
+                            className="flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-gray-900 px-8 py-3 font-medium text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-gray-800 hover:shadow-lg"
                         >
                             View Projects
                             <svg
@@ -45,7 +45,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onScrollToSection }) => {
                         </button>
                         <button
                             onClick={() => onScrollToSection("contact")}
-                            className="rounded-lg border border-gray-300 px-8 py-3 font-medium transition-all duration-200 hover:-translate-y-0.5 hover:border-gray-400 hover:bg-gray-50 hover:shadow-lg"
+                            className="cursor-pointer rounded-lg border border-gray-300 px-8 py-3 font-medium transition-all duration-200 hover:-translate-y-0.5 hover:border-gray-400 hover:bg-gray-50 hover:shadow-lg"
                         >
                             Get In Touch
                         </button>
