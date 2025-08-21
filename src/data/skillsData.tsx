@@ -49,6 +49,7 @@ export const skillsData: SkillCategory[] = [
             </svg>
         ),
         skills: [
+            { name: "Go", logo: "go.svg" },
             { name: "Laravel", logo: "laravel.svg" },
             { name: "PHP", logo: "php.svg" },
             { name: "Prisma", logo: "prisma.svg" },
