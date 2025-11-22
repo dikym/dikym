@@ -38,12 +38,13 @@ const App: React.FC = () => {
                 onToggleMobileMenu={handleToggleMobileMenu}
                 onCloseMobileMenu={handleCloseMobileMenu}
             />
-
-            <HeroSection onScrollToSection={handleScrollToSection} />
-            <AboutSection />
-            <SkillsSection skillsData={skillsData} />
-            <ProjectsSection projects={projectsData} />
-            <ContactSection />
+            <main>
+                <HeroSection onScrollToSection={handleScrollToSection} />
+                <AboutSection />
+                <SkillsSection skillsData={skillsData} />
+                <ProjectsSection projects={projectsData} />
+                <ContactSection />
+            </main>
             <Footer />
         </div>
     );
