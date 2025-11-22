@@ -8,6 +8,7 @@ const Footer: React.FC = () => {
                     </p>
                     <div className="flex items-center gap-4">
                         <a
+                            aria-label="LinkedIn"
                             href="https://linkedin.com/in/dikym"
                             target="_blank"
                             rel="noopener noreferrer"
@@ -22,6 +23,7 @@ const Footer: React.FC = () => {
                             </svg>
                         </a>
                         <a
+                            aria-label="GitHub"
                             href="https://github.com/dikym"
                             target="_blank"
                             rel="noopener noreferrer"
@@ -40,6 +42,7 @@ const Footer: React.FC = () => {
                             </svg>
                         </a>
                         <a
+                            aria-label="Email"
                             href="mailto:890dikymaulidan@gmail.com"
                             className="text-gray-400 transition-colors duration-200 hover:-translate-y-0.5 hover:text-gray-600"
                         >

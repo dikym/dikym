@@ -20,6 +20,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="rounded-lg p-2 opacity-0 transition-opacity duration-300 group-hover:opacity-100 hover:bg-gray-100"
+                    aria-label={project.title}
                 >
                     <svg
                         className="h-5 w-5 text-gray-600"

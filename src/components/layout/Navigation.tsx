@@ -54,6 +54,7 @@ const Navigation: React.FC<NavigationProps> = ({
 
                     {/* Mobile Menu Button */}
                     <button
+                        aria-label="Toggle mobile menu"
                         className="rounded-lg transition-colors duration-200 hover:bg-gray-100 md:hidden"
                         onClick={onToggleMobileMenu}
                     >

@@ -83,9 +83,9 @@ const AboutSection: React.FC = () => {
                                             </span>
                                         </div>
                                         <div>
-                                            <h4 className="font-semibold text-gray-900">
+                                            <h3 className="font-semibold text-gray-900">
                                                 {stat.label}
-                                            </h4>
+                                            </h3>
                                             <p className="text-sm text-gray-600">
                                                 {stat.description}
                                             </p>
