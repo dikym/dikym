@@ -50,8 +50,10 @@ export const skillsData: SkillCategory[] = [
         ),
         skills: [
             { name: "Go", logo: "go.svg" },
-            { name: "Laravel", logo: "laravel.svg" },
+            { name: "Go Fiber", logo: "go-fiber.svg" },
+            { name: "GORM", logo: "gorm.svg" },
             { name: "PHP", logo: "php.svg" },
+            { name: "Laravel", logo: "laravel.svg" },
             { name: "Prisma", logo: "prisma.svg" },
             { name: "MySQL", logo: "mysql.svg" },
             { name: "PostgreSQL", logo: "postgressql.svg" },
@@ -77,6 +79,7 @@ export const skillsData: SkillCategory[] = [
         ),
         skills: [
             { name: "Git", logo: "git.svg" },
+            { name: "Apidog", logo: "apidog.svg" },
             { name: "Postman", logo: "postman.svg" },
             { name: "OpenAPI", logo: "openapi.svg" },
             { name: "Xendit", logo: "xendit.svg" },
