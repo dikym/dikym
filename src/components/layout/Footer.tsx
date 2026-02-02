@@ -4,7 +4,7 @@ const Footer: React.FC = () => {
             <div className="mx-auto max-w-5xl px-6">
                 <div className="flex flex-col items-center justify-between md:flex-row">
                     <p className="mb-4 text-sm text-gray-500 md:mb-0">
-                        © 2025 Diky Maulidan. All rights reserved.
+                        © 2026 Diky Maulidan. All rights reserved.
                     </p>
                     <div className="flex items-center gap-4">
                         <a
