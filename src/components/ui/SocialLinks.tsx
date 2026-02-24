@@ -37,7 +37,7 @@ const SocialLinks: React.FC = () => {
                     </svg>
                 </a>
                 <a
-                    href="mailto:890dikymaulidan@gmail.com"
+                    href="mailto:hello@dikym.me"
                     className="touch-manipulation rounded-lg p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-600"
                     aria-label="Email"
                 >
