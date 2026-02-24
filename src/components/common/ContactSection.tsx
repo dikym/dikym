@@ -15,7 +15,7 @@ const ContactSection: React.FC = () => {
                 </p>
                 <div className="flex flex-col justify-center gap-4 sm:flex-row">
                     <a
-                        href="mailto:890dikymaulidan@gmail.com"
+                        href="mailto:hello@dikym.me"
                         className="flex items-center justify-center gap-2 rounded-lg bg-gray-900 px-8 py-3 font-medium text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-gray-800 hover:shadow-lg"
                     >
                         <svg
