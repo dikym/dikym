@@ -13,7 +13,7 @@ export interface Project {
     title: string;
     description: string;
     tech: string[];
-    url: string;
+    url?: string;
 }
 
 export interface NavigationItem {
