@@ -1,19 +1,19 @@
 const AboutSection: React.FC = () => {
     const stats = [
         {
-            number: "5+",
+            number: "10+",
             label: "Projects Delivered",
             description: "External client projects",
         },
         {
-            number: "2+",
+            number: "3",
             label: "Years Experience",
             description: "Professional development",
         },
         {
             number: "10+",
-            label: "Different Teams",
-            description: "Cross-functional collaboration",
+            label: "Cross-Functional Teams",
+            description: "Across design, product & engineering",
         },
     ];
 
@@ -31,41 +31,71 @@ const AboutSection: React.FC = () => {
                         </h2>
                         <div className="space-y-6">
                             <p className="text-lg leading-relaxed text-gray-600">
-                                I'm a passionate web developer with over{" "}
+                                I'm a fullstack web developer with{" "}
                                 <span className="font-semibold text-gray-900">
-                                    2+ years
+                                    3 years
                                 </span>{" "}
-                                of experience crafting digital experiences.
-                                Currently based in{" "}
+                                of experience, currently building internal
+                                products at{" "}
                                 <span className="font-semibold text-gray-900">
-                                    Malang, Indonesia
+                                    BVR Group Asia
+                                </span>{" "}
+                                in{" "}
+                                <span className="font-semibold text-gray-900">
+                                    Bali
                                 </span>
-                                , I've contributed to{" "}
+                                . I'm comfortable across the whole stack:
+                                responsive, performance-minded interfaces in{" "}
                                 <span className="font-semibold text-gray-900">
-                                    5+ external projects
+                                    Next.js
                                 </span>{" "}
-                                and accumulated thousands of productive
-                                development hours.
+                                and{" "}
+                                <span className="font-semibold text-gray-900">
+                                    Svelte
+                                </span>{" "}
+                                with Tailwind (and GSAP when a design calls for
+                                motion), backed by APIs and database schemas in{" "}
+                                <span className="font-semibold text-gray-900">
+                                    Laravel
+                                </span>
+                                ,{" "}
+                                <span className="font-semibold text-gray-900">
+                                    Go
+                                </span>
+                                , and{" "}
+                                <span className="font-semibold text-gray-900">
+                                    PostgreSQL
+                                </span>
+                                .
                             </p>
                             <p className="text-lg leading-relaxed text-gray-600">
-                                What drives me is the perfect blend of{" "}
+                                I've shipped for a range of clients — government
+                                platforms like{" "}
                                 <span className="font-semibold text-gray-900">
-                                    technical precision
+                                    Biofarma
                                 </span>{" "}
-                                and
+                                and{" "}
                                 <span className="font-semibold text-gray-900">
-                                    {" "}
-                                    creative problem-solving
+                                    Kominfo
                                 </span>
-                                . I bring strong analytical thinking,
-                                adaptability, and a commitment to delivering
-                                high-quality outcomes that exceed expectations.
+                                , a property management system, landing pages,
+                                and an e-commerce app where I wired up{" "}
+                                <span className="font-semibold text-gray-900">
+                                    Xendit
+                                </span>{" "}
+                                payments and{" "}
+                                <span className="font-semibold text-gray-900">
+                                    Biteship
+                                </span>{" "}
+                                shipping end to end.
                             </p>
                             <p className="text-lg leading-relaxed text-gray-600">
-                                Whether working independently or collaborating
-                                with cross-functional teams, I thrive on turning
-                                complex challenges into elegant, performant
-                                solutions that users love.
+                                Performance isn't an afterthought for me: lazy
+                                loading, smaller bundles, and high PageSpeed
+                                scores are part of how I build. I pick up new
+                                codebases and tools quickly, and I like turning
+                                a Figma file into something that loads fast and
+                                holds up on every screen.
                             </p>
                         </div>
                     </div>
