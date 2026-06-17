@@ -13,14 +13,12 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onScrollToSection }) => {
                 <div className="max-w-4xl">
                     <div className="mb-8">
                         <h1 className="mb-6 text-4xl leading-tight font-bold text-gray-900 md:text-6xl">
-                            Building fast, impactful web experiences across the
-                            full stack.
+                            Fullstack web developer based in Bali.
                         </h1>
                         <p className="mb-8 max-w-3xl text-xl leading-relaxed text-gray-600">
-                            Passionate web developer with a special love for
-                            crafting clean, user-friendly interfaces that
-                            perform smoothly and deliver exceptional user
-                            experiences.
+                            I build fast, accessible web apps end to end —
+                            frontends in Next.js and Svelte, backed by APIs and
+                            databases in Laravel and Go.
                         </p>
                     </div>
                     <div className="mb-16 flex flex-col gap-4 sm:flex-row">
