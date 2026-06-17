@@ -4,28 +4,28 @@ export const projectsData: Project[] = [
     {
         title: "SSPACE",
         description:
-            "Translated Figma design into a fully responsive landing page using Tailwind, ensuring pixel-perfect implementation with smooth GSAP animations.",
+            "Built a responsive office-space landing page from a Figma design with Tailwind and GSAP-driven scroll animations.",
         tech: ["Tailwind CSS", "GSAP"],
         url: "sspace.id",
     },
     {
         title: "Biofarma CMS",
         description:
-            "Built a robust and scalable CMS interface using Next.js and TypeScript, with modular UI components and complex form handling.",
+            "Built a scalable CMS interface in Next.js and TypeScript with modular UI components and complex form handling for a national pharmaceutical client.",
         tech: ["React.js", "Next.js", "TypeScript", "Tailwind CSS"],
         url: "biofarma.co.id",
     },
     {
-        title: "Poktan360",
+        title: "BVR Appraisal",
         description:
-            "Developed complete web application using Angular and Laravel with role-based access control and high PageSpeed performance.",
-        tech: ["Laravel", "MySQL", "Angular", "Tailwind CSS"],
-        url: "poktan360.com",
+            "Rewrote BVR Group Asia's property-appraisal platform from scratch — a Svelte frontend backed by a custom Laravel CMS for managing certified valuation services, content, and SEO for the Bali market.",
+        tech: ["Laravel", "Svelte", "Tailwind CSS"],
+        url: "appraisal.bvrgroupasia.com",
     },
     {
         title: "SDM Digital",
         description:
-            "Developed backend services using Laravel with PostgreSQL optimization, RESTful APIs, and automated job scheduling.",
+            "Built Laravel backend services with PostgreSQL query optimization, RESTful APIs, and automated job scheduling for a government competency-standards platform.",
         tech: ["PostgreSQL", "Laravel", "REST API"],
         url: "standar.sdmdigital.id",
     },
