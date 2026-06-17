@@ -22,6 +22,7 @@ export const skillsData: SkillCategory[] = [
         skills: [
             { name: "React", logo: "react.svg" },
             { name: "Next.js", logo: "nextjs.svg" },
+            { name: "Svelte", logo: "svelte.svg" },
             { name: "Node.js", logo: "nodejs.svg" },
             { name: "Angular", logo: "angular.svg" },
             { name: "TypeScript", logo: "typescript.svg" },
