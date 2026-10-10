@@ -33,6 +33,7 @@ const SkillCard: React.FC<SkillCardProps> = ({ category }) => {
                                 alt={`${skill.name} logo`}
                                 className={`h-[48cqw] w-auto max-w-[80cqw] object-contain scheme-light dark:scheme-dark ${
                                     [
+                                        "go-fiber.svg",
                                         "nextjs.svg",
                                         "prisma.svg",
                                         "vercel.svg",
