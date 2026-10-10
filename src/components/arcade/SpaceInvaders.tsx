@@ -530,6 +530,8 @@ const SpaceInvaders: React.FC<SpaceInvadersProps> = ({
             drawnArrived = arrivedRef.current;
             drawnClosing = closingRef.current;
             const points = s.ufoPoints;
+            // The title screen ends on the ground line; mobile compositing can leak that edge row while animating.
+            const groundHidden = !startedRef.current || s.over;
             for (let x = 0; x < W; x++)
                 for (let y = FIELD_TOP; y < FIELD_BOTTOM; y++) {
                     const scorePixel =
@@ -539,7 +541,11 @@ const SpaceInvaders: React.FC<SpaceInvadersProps> = ({
                         x >= points.x &&
                         x < points.x + 24;
                     image.data[((y - FIELD_TOP) * W + x) * 4 + 3] =
-                        !scorePixel && litPixel(s, x, y) ? 255 : 0;
+                        !scorePixel &&
+                        !(groundHidden && y === FIELD_BOTTOM - 1) &&
+                        litPixel(s, x, y)
+                            ? 255
+                            : 0;
                 }
             ctx.putImageData(image, 0, 0);
             if (!startedRef.current) {
