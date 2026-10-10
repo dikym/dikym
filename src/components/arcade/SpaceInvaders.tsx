@@ -99,6 +99,26 @@ const SpaceInvaders: React.FC<SpaceInvadersProps> = ({
     const gameRef = useRef<Game | null>(null);
     gameRef.current ??= newGame();
     const inputRef = useRef<Input>({ left: false, right: false, fire: false });
+    const heldRef = useRef({
+        left: new Set<string>(),
+        right: new Set<string>(),
+        fire: new Set<string>(),
+    });
+    const setInput = useCallback(
+        (action: keyof Input, source: string, pressed: boolean) => {
+            const held = heldRef.current[action];
+            if (pressed) held.add(source);
+            else held.delete(source);
+            inputRef.current[action] = held.size > 0;
+        },
+        []
+    );
+    const clearInput = useCallback(() => {
+        for (const action of ["left", "right", "fire"] as const) {
+            heldRef.current[action].clear();
+            inputRef.current[action] = false;
+        }
+    }, []);
     const startedRef = useRef(false);
     const [started, setStarted] = useState(false);
     const [hud, setHud] = useState<Hud>({
@@ -138,13 +158,13 @@ const SpaceInvaders: React.FC<SpaceInvadersProps> = ({
         closingRef.current = true;
         audioRef.current?.close();
         audioRef.current = null;
-        inputRef.current = { left: false, right: false, fire: false };
+        clearInput();
         returningInvaderRef.current =
             gameRef.current!.invaders.find(
                 invader => invader.row === 1 && invader.alive
             ) ?? gameRef.current!.invaders[ARRIVING_INVADER];
         setClosing(true);
-    }, []);
+    }, [clearInput]);
 
     const start = async () => {
         audioRef.current ??= createArcadeAudio();
@@ -152,7 +172,7 @@ const SpaceInvaders: React.FC<SpaceInvadersProps> = ({
         await audioRef.current?.start();
         if (closingRef.current) return;
         if (startedRef.current) gameRef.current = newGame();
-        inputRef.current = { left: false, right: false, fire: false };
+        clearInput();
         startedRef.current = true;
         setStarted(true);
         setHud({ score: 0, lives: 3, wave: 1, over: false });
@@ -388,21 +408,18 @@ const SpaceInvaders: React.FC<SpaceInvadersProps> = ({
     }, [origin, closing, onClose, openingScroll]);
 
     useEffect(() => {
-        const clearInput = () => {
-            inputRef.current = { left: false, right: false, fire: false };
-        };
         const onKey = (e: KeyboardEvent) => {
+            const action = KEYS[e.code];
+            if (action && e.type === "keyup") {
+                setInput(action, `key:${e.code}`, false);
+                return;
+            }
             if (!sectionRef.current?.contains(e.target as Node)) return;
             if (e.key === "Escape" && e.type === "keydown") {
                 requestClose();
                 return;
             }
-            const action = KEYS[e.code];
             if (!action) return;
-            if (e.type === "keyup") {
-                inputRef.current[action] = false;
-                return;
-            }
             if (
                 !startedRef.current ||
                 gameRef.current!.over ||
@@ -410,7 +427,7 @@ const SpaceInvaders: React.FC<SpaceInvadersProps> = ({
             )
                 return;
             e.preventDefault();
-            inputRef.current[action] = true;
+            setInput(action, `key:${e.code}`, true);
         };
         window.addEventListener("keydown", onKey);
         window.addEventListener("keyup", onKey);
@@ -422,7 +439,7 @@ const SpaceInvaders: React.FC<SpaceInvadersProps> = ({
             window.removeEventListener("blur", clearInput);
             document.removeEventListener("visibilitychange", clearInput);
         };
-    }, [requestClose]);
+    }, [requestClose, clearInput, setInput]);
 
     // Game loop.
     useEffect(() => {
@@ -574,19 +591,26 @@ const SpaceInvaders: React.FC<SpaceInvadersProps> = ({
     const hold = (action: keyof Input) => ({
         onPointerDown: (e: React.PointerEvent) => {
             e.currentTarget.setPointerCapture(e.pointerId);
-            inputRef.current[action] = true;
+            setInput(action, `pointer:${e.pointerId}`, true);
         },
-        onPointerUp: () => (inputRef.current[action] = false),
-        onPointerCancel: () => (inputRef.current[action] = false),
-        onLostPointerCapture: () => (inputRef.current[action] = false),
+        onPointerUp: (e: React.PointerEvent) =>
+            setInput(action, `pointer:${e.pointerId}`, false),
+        onPointerCancel: (e: React.PointerEvent) =>
+            setInput(action, `pointer:${e.pointerId}`, false),
+        onLostPointerCapture: (e: React.PointerEvent) =>
+            setInput(action, `pointer:${e.pointerId}`, false),
         onKeyDown: (e: React.KeyboardEvent) => {
             if (e.key === " " || e.key === "Enter") {
                 e.preventDefault();
-                inputRef.current[action] = true;
+                setInput(action, `button:${e.key}`, true);
             }
         },
-        onKeyUp: () => (inputRef.current[action] = false),
-        onBlur: () => (inputRef.current[action] = false),
+        onKeyUp: (e: React.KeyboardEvent) =>
+            setInput(action, `button:${e.key}`, false),
+        onBlur: () => {
+            setInput(action, "button: ", false);
+            setInput(action, "button:Enter", false);
+        },
     });
 
     return (
@@ -595,12 +619,7 @@ const SpaceInvaders: React.FC<SpaceInvadersProps> = ({
             tabIndex={-1}
             aria-labelledby="invaders-title"
             onBlur={e => {
-                if (!e.currentTarget.contains(e.relatedTarget))
-                    inputRef.current = {
-                        left: false,
-                        right: false,
-                        fire: false,
-                    };
+                if (!e.currentTarget.contains(e.relatedTarget)) clearInput();
             }}
             className="arcade-section"
         >
