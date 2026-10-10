@@ -1,61 +1,64 @@
 import type { NavigationItem } from "../../types";
-import SocialLinks from "../ui/SocialLinks.tsx";
 
 interface MobileMenuProps {
+    isOpen: boolean;
     navigationItems: NavigationItem[];
+    activeSection: string;
     onScrollToSection: (sectionId: string) => void;
-    onClose: () => void;
 }
 
 const MobileMenu: React.FC<MobileMenuProps> = ({
+    isOpen,
     navigationItems,
+    activeSection,
     onScrollToSection,
-    onClose,
 }) => {
     return (
-        <div className="fixed inset-0 z-50 bg-white md:hidden">
-            <div className="flex h-screen flex-col bg-white">
-                {/* Mobile Menu Header */}
-                <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-                    <div className="font-mono text-xl font-bold text-gray-900">
-                        dikym
-                    </div>
-                    <button
-                        onClick={onClose}
-                        className="touch-manipulation rounded-lg transition-colors duration-200 hover:bg-gray-100"
-                        aria-label="Close menu"
-                    >
-                        <svg
-                            className="h-6 w-6"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+        <div
+            id="mobile-menu"
+            aria-hidden={!isOpen}
+            className={`menu-sheet bg-page fixed inset-0 z-[60] min-[961px]:hidden ${isOpen ? "is-open" : ""}`}
+        >
+            <div className="flex h-full flex-col justify-between px-[calc(var(--gutter)+var(--inset))] pt-[calc(var(--nav-h)+clamp(24px,5vh,44px))] pb-[clamp(28px,5vh,48px)]">
+                <nav className="absolute top-1/2 right-[calc(var(--gutter)+var(--inset))] left-[calc(var(--gutter)+var(--inset))] flex -translate-y-1/2 flex-col">
+                    {navigationItems.map((item, i) => (
+                        <span
+                            key={item.id}
+                            className="ln border-line-2 relative flex items-baseline gap-4 overflow-hidden border-b"
+                            style={{ "--i": i } as React.CSSProperties}
                         >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M6 18L18 6M6 6l12 12"
-                            />
-                        </svg>
-                    </button>
-                </div>
-
-                <div className="flex flex-1 items-center justify-center">
-                    <div className="w-full space-y-8 px-6 text-center">
-                        {navigationItems.map(section => (
+                            <span className="eyebrow text-amber-2">
+                                {String(i + 1).padStart(2, "0")}
+                            </span>
                             <button
-                                key={section.id}
-                                onClick={() => onScrollToSection(section.id)}
-                                className="block w-full touch-manipulation rounded-lg py-3 text-3xl font-bold transition-all duration-300"
+                                onClick={() => onScrollToSection(item.id)}
+                                tabIndex={isOpen ? 0 : -1}
+                                className={`flex-1 cursor-pointer py-[clamp(14px,2.4vh,22px)] text-left text-[clamp(30px,9vw,44px)] leading-[1.06] font-medium tracking-[-0.03em] ${
+                                    activeSection === item.id
+                                        ? "text-amber-2"
+                                        : "text-ink"
+                                }`}
                             >
-                                {section.label}
+                                {item.label}
                             </button>
-                        ))}
-                    </div>
+                        </span>
+                    ))}
+                </nav>
+                <div
+                    className="menu-foot eyebrow text-ink-3 mt-auto flex items-baseline justify-between gap-4 tracking-[0.14em]"
+                    style={
+                        { "--i": navigationItems.length } as React.CSSProperties
+                    }
+                >
+                    <a
+                        href="mailto:hello@dikym.me"
+                        tabIndex={isOpen ? 0 : -1}
+                        className="text-ink"
+                    >
+                        hello@dikym.me
+                    </a>
+                    <span>Bali, Indonesia</span>
                 </div>
-
-                <SocialLinks />
             </div>
         </div>
     );

@@ -5,7 +5,6 @@ export interface Skill {
 
 export interface SkillCategory {
     category: string;
-    icon: React.ReactNode;
     skills: Skill[];
 }
 

@@ -1,3 +1,6 @@
+import Arrow from "../ui/Arrow.tsx";
+import { Reveal, RevealLines } from "../ui/Reveal.tsx";
+
 interface HeroSectionProps {
     onScrollToSection: (sectionId: string) => void;
 }
@@ -6,49 +9,38 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onScrollToSection }) => {
     return (
         <section
             id="home"
-            className="pt-32 pb-20"
-            style={{ scrollMarginTop: "60px" }}
+            className="pt-[calc(var(--nav-h)+56px)] pb-(--sp) min-[961px]:pt-[calc(var(--nav-h)+120px)]"
         >
-            <div className="mx-auto max-w-5xl px-6">
-                <div className="max-w-4xl">
-                    <div className="mb-8">
-                        <h1 className="mb-6 text-4xl leading-tight font-bold text-gray-900 md:text-6xl">
-                            Fullstack web developer based in Bali.
-                        </h1>
-                        <p className="mb-8 max-w-3xl text-xl leading-relaxed text-gray-600">
-                            I build fast, accessible web apps end to end —
-                            frontends in Next.js and Svelte, backed by APIs and
-                            databases in Laravel and Go.
-                        </p>
-                    </div>
-                    <div className="mb-16 flex flex-col gap-4 sm:flex-row">
+            <div className="wrap grid items-start gap-[30px] min-[961px]:grid-cols-[1.15fr_.85fr] min-[961px]:gap-[60px]">
+                <RevealLines
+                    as="h1"
+                    lead="Fullstack web developer"
+                    dim="based in Bali."
+                    className="max-[961px]:text-[clamp(35px,9.5vw,45px)] max-[961px]:leading-[1.14] max-[961px]:tracking-[-0.032em]"
+                />
+                <Reveal className="flex w-full flex-col min-[961px]:ml-auto min-[961px]:pt-[18px] lg:max-w-[44ch]">
+                    <p className="text-lead text-ink-2">
+                        I build fast, accessible web apps end to end — frontends
+                        in Next.js and Svelte, backed by APIs and databases in
+                        Laravel and Go.
+                    </p>
+                    <div className="mt-8 flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:gap-3">
                         <button
                             onClick={() => onScrollToSection("projects")}
-                            className="flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-gray-900 px-8 py-3 font-medium text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-gray-800 hover:shadow-lg"
+                            className="btn btn-amber justify-center"
                         >
-                            View Projects
-                            <svg
-                                className="h-4 w-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M17 8l4 4m0 0l-4 4m4-4H3"
-                                />
-                            </svg>
+                            View projects
+                            <Arrow direction="sw" />
                         </button>
                         <button
                             onClick={() => onScrollToSection("contact")}
-                            className="cursor-pointer rounded-lg border border-gray-300 px-8 py-3 font-medium transition-all duration-200 hover:-translate-y-0.5 hover:border-gray-400 hover:bg-gray-50 hover:shadow-lg"
+                            className="btn btn-ghost justify-center"
                         >
-                            Get In Touch
+                            Get in touch
+                            <Arrow direction="sw" />
                         </button>
                     </div>
-                </div>
+                </Reveal>
             </div>
         </section>
     );
