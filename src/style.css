@@ -803,7 +803,6 @@
     display: none;
     grid-template-columns: 1fr 1fr 2fr;
     gap: 8px;
-    user-select: none;
 }
 .arcade-button:disabled {
     opacity: 0.45;
@@ -816,6 +815,11 @@
     }
 }
 @media (any-pointer: coarse), (max-width: 700px) {
+    /* Taps on the touch controls must not start a text selection anywhere on the page. */
+    html:has(.arcade-section) {
+        user-select: none;
+        -webkit-touch-callout: none;
+    }
     .arcade-touch-controls {
         display: grid;
     }
