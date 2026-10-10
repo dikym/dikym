@@ -452,7 +452,7 @@
 .arcade-section {
     --arcade-field-width: min(
         448px,
-        max(240px, var(--arcade-height-width, 448px)),
+        var(--arcade-height-width, 448px),
         calc(100cqi - 2 * var(--arcade-screen-padding))
     );
 }
@@ -532,7 +532,7 @@
     --tile: #222222;
     display: block;
     position: relative;
-    scroll-margin-top: calc(var(--nav-h) + 16px);
+    scroll-margin-top: var(--nav-h);
     color: var(--ink);
 }
 .arcade-clip {
@@ -655,6 +655,9 @@
     padding: 12px 4px;
     background: var(--page);
     text-align: center;
+}
+.arcade-title-screen > :not(.arcade-title) {
+    zoom: var(--arcade-fit-scale, 1);
 }
 .arcade-ready {
     top: 52%;

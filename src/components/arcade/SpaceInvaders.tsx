@@ -223,7 +223,7 @@ const SpaceInvaders: React.FC<SpaceInvadersProps> = ({
         const openingTop =
             navbarBottom +
             Math.max(
-                16,
+                0,
                 (window.innerHeight - navbarBottom - bounds.height) / 2
             );
         const invader = closing
@@ -352,7 +352,7 @@ const SpaceInvaders: React.FC<SpaceInvadersProps> = ({
                     : window.scrollY +
                           resized.top -
                           nav -
-                          Math.max(16, (window.innerHeight - nav - height) / 2)
+                          Math.max(0, (window.innerHeight - nav - height) / 2)
             );
             const progress = reveal.effect!.getComputedTiming().progress ?? 0;
             if (progress < 1)

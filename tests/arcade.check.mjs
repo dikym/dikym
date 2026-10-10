@@ -75,8 +75,8 @@ const checkOpeningPosition = async () => {
         return {top: section.top - navbar.bottom, bottom: innerHeight - section.bottom};
     })()`);
     assert.ok(
-        Math.abs(position.top - Math.max(16, position.bottom)) < 1,
-        "opening centers the arcade below the navbar, with a top margin when it cannot fit"
+        Math.abs(position.top - Math.max(0, position.bottom)) < 1,
+        "opening centers the arcade below the navbar"
     );
 };
 const checkCloseSpacing = async () => {
@@ -1530,15 +1530,14 @@ try {
             "document.querySelector('.arcade-start')?.disabled === false"
         );
         await checkOpeningPosition();
-        if (height >= 667)
-            assert.ok(
-                await evaluate(`(() => {
+        assert.ok(
+            await evaluate(`(() => {
             const bounds = document.querySelector('.arcade-section').getBoundingClientRect();
             const navbar = document.querySelector('header > nav').getBoundingClientRect();
-            return bounds.top >= navbar.bottom + 15 && bounds.bottom <= innerHeight - 15;
+            return bounds.top >= navbar.bottom - 1 && bounds.bottom <= innerHeight + 1;
         })()`),
-                "the complete arcade fits below the navbar with equal outer margins"
-            );
+            "the complete arcade fits below the navbar"
+        );
         if (width === 375 || width === 393) {
             await evaluate("tickArcade(1)");
             const screenshot = await send("Page.captureScreenshot", {

@@ -49,7 +49,6 @@ export const fitArcadeToViewport = (section: HTMLElement) => {
         const available =
             window.innerHeight -
             navbarBottom -
-            32 -
             (panel.getBoundingClientRect().height - game.height);
         if (game.width && game.height)
             section.style.setProperty(
@@ -57,6 +56,19 @@ export const fitArcadeToViewport = (section: HTMLElement) => {
                 `${Math.max(1, (available * width) / game.height)}px`
             );
     }
+    // Title screen text keeps its width-fitted size and shrinks only when height limits the game.
+    const screen = board.parentElement!;
+    const padding = getComputedStyle(screen);
+    const room = Math.min(
+        448,
+        screen.clientWidth -
+            parseFloat(padding.paddingLeft) -
+            parseFloat(padding.paddingRight)
+    );
+    board.style.setProperty(
+        "--arcade-fit-scale",
+        String(Math.min(1, parseFloat(getComputedStyle(board).width) / room))
+    );
 };
 
 export const scrollPositionTop = (
