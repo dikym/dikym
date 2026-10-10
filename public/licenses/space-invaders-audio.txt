@@ -1,0 +1,16 @@
+Space Invaders 1978 sound-effect recordings.
+Source files: https://github.com/jscrane/invaders/tree/master/sounds
+Original archive: https://www.classicgaming.cc/classics/space-invaders/sounds
+MAME mapping: https://github.com/mamedev/mame/blob/master/src/mame/midw8080/8080bw_a.cpp
+The recordings are retained byte-for-byte. No ownership or new license is claimed for the original game audio.
+
+BaseHit.wav: SHA-256 03358330a572728571ce532ee8aeedc0a78e3c10a1bcf31177528991ac8790a5
+Extend.wav: SHA-256 121ea6020a09030fb0f3c33feca75840d7a0a5ac6cd4472fd15b1e1e050ba230
+InvHit.wav: SHA-256 b96773a043eb0c0f73fc2f8747168e5f9a138b637413207d91ff3c24c7847d51
+Shot.wav: SHA-256 478670acb1eb925e2c0e5c440a9418474156fd50b410578de93856602c62a42d
+Ufo.wav: SHA-256 2e19ee89a5bc01bde5eaf2ba460610074b2dd35daf2b2cf5c23f9ebc0f48938c
+UfoHit.wav: SHA-256 ca3168a08e9e400e1c96e70e60099221340bf3de48a4a9875523aba5c5fe9cfa
+Walk1.wav: SHA-256 47cfb255f17c20701093099716a9cf305e6837db0173a90e96b50a960eb5a326
+Walk2.wav: SHA-256 ee05071d4c165bcb74c8d925395607e88b866f605e3c6fe1f5a930586804d709
+Walk3.wav: SHA-256 f8c4eaca22309f5fae34aa693b3e21f0846b8513e0c640859e52576ba0988bc1
+Walk4.wav: SHA-256 377c266524ccb0d3a4b780b66f6f8f8cb4cfde8b99a6bfe97702ad6180e55828

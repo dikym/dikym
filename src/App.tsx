@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import ArcadeSection from "./components/sections/ArcadeSection.tsx";
 import Navigation from "./components/layout/Navigation.tsx";
 import HeroSection from "./components/sections/HeroSection.tsx";
 import AboutSection from "./components/sections/AboutSection.tsx";
@@ -9,6 +10,7 @@ import Footer from "./components/layout/Footer.tsx";
 import Curtain from "./components/layout/Curtain.tsx";
 import { useActiveSection } from "./hooks/useActiveSection";
 import { useScrollToSection } from "./hooks/useScrollToSection";
+import { usePreserveScrollPosition } from "./hooks/usePreserveScrollPosition";
 import { skillsData } from "./data/skillsData";
 import { projectsData } from "./data/projectsData";
 
@@ -16,6 +18,7 @@ const App: React.FC = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
     const activeSection = useActiveSection();
     const scrollToSection = useScrollToSection();
+    usePreserveScrollPosition();
 
     // While the menu is open: Escape closes it and the page behind can't scroll.
     useEffect(() => {
@@ -55,6 +58,7 @@ const App: React.FC = () => {
                 <SkillsSection skillsData={skillsData} />
                 <ProjectsSection projects={projectsData} />
                 <ContactSection />
+                <ArcadeSection />
             </main>
             <Footer onScrollToSection={handleScrollToSection} />
         </div>
