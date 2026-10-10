@@ -1,6 +1,7 @@
-import type { Cpu8080, CpuState } from "./cpu8080.js";
+import type { Cpu8080 } from "./cpu8080.js";
 import { createCpu8080 } from "./cpu8080.js";
 import { ROM } from "./rom.ts";
+import { BOOT, BOOT_RAM } from "./boot.ts";
 
 export const W = 224;
 export const H = 256;
@@ -44,12 +45,6 @@ export interface Game {
     sound: number[];
     ufoPoints: { x: number; y: number; points: number } | null;
 }
-
-let boot:
-    | (Pick<Game, "memory" | "shift" | "shiftOffset" | "deadline" | "sound"> & {
-          cpu: CpuState;
-      })
-    | null = null;
 
 const bcd = (value: number) => (value >> 4) * 10 + (value & 15);
 
@@ -139,33 +134,12 @@ export const newGame = (): Game => {
                     ? (g.shift >> (8 - g.shiftOffset)) & 255
                     : 0x0e
     );
-    if (boot) {
-        memory.set(boot.memory);
-        g.cpu.restore(boot.cpu);
-        g.shift = boot.shift;
-        g.shiftOffset = boot.shiftOffset;
-        g.deadline = boot.deadline;
-        g.sound = [...boot.sound];
-    } else {
-        // Capture the native coin/start boot once, including pending interrupts.
-        for (let i = 0; i < 120; i++) frame(g);
-        g.controls |= 1;
-        frame(g);
-        g.controls &= ~1;
-        for (let i = 0; i < 120 && !memory[0x2093]; i++) frame(g);
-        g.controls |= 4;
-        for (let i = 0; i < 240 && !(memory[0x20ef] && memory[0x20e9]); i++)
-            frame(g);
-        g.controls = 8;
-        boot = {
-            memory: memory.slice(),
-            cpu: g.cpu.save(),
-            shift: g.shift,
-            shiftOffset: g.shiftOffset,
-            deadline: g.deadline,
-            sound: [...g.sound],
-        };
-    }
+    memory.set(BOOT_RAM, 0x2000);
+    g.cpu.restore(BOOT.cpu);
+    g.shift = BOOT.shift;
+    g.shiftOffset = BOOT.shiftOffset;
+    g.deadline = BOOT.deadline;
+    g.sound = [...BOOT.sound];
     g.events.length = 0;
     readState(g);
     return g;

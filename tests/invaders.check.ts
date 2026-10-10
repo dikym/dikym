@@ -13,6 +13,7 @@ import {
 } from "../src/game/invaders.ts";
 import { ROM } from "../src/game/rom.ts";
 import { createCpu8080 } from "../src/game/cpu8080.js";
+import { BOOT_RAM, BOOT_ROM_SHA256 } from "../src/game/boot.ts";
 import { createHash } from "node:crypto";
 import {
     ALIEN_EXPLOSION,
@@ -154,20 +155,26 @@ assert.equal(pixelColor(0, 240), "#ffffff");
 assert.equal(pixelColor(16, 240), "#20ff20");
 
 const g = newGame();
+assert.equal(createHash("sha256").update(ROM).digest("hex"), BOOT_ROM_SHA256);
+assert.equal(BOOT_RAM.length, 8192);
 assert.equal(
     createHash("sha256").update(g.memory).digest("hex"),
     reference.initialMemorySha256,
-    "cold boot memory matches the pre-optimization program"
+    "restored memory matches the pre-optimization program"
 );
 assert.equal(gameHash(g), reference.initialStateSha256);
 const initialCpu = g.cpu.save();
-const cached = newGame();
-assert.equal(gameHash(cached), reference.initialStateSha256);
-assert.deepEqual(cached.cpu.save(), initialCpu);
-cached.memory.fill(0);
-cached.sound.fill(255);
-cached.invaders[0].x = -100;
-cached.cpu.set("PC", 0xffff);
+const independent = newGame();
+assert.equal(gameHash(independent), reference.initialStateSha256);
+assert.deepEqual(independent.cpu.save(), initialCpu);
+independent.memory.fill(0);
+independent.sound.fill(255);
+independent.events.push({ port: 3, value: 255 });
+independent.invaders[0].x = -100;
+independent.cpu.set("PC", 0xffff);
+assert.equal(gameHash(g), reference.initialStateSha256);
+assert.deepEqual(g.cpu.save(), initialCpu);
+assert.equal(g.events.length, 0);
 const pristine = newGame();
 assert.equal(
     gameHash(pristine),
@@ -337,17 +344,14 @@ for (const expected of reference.trajectories) {
     const game = newGame();
     const digest = createHash("sha256");
     for (let i = 0; i < 900; i++) {
-        step(
-            game,
-            {
-                fire:
-                    expected.mode === "fire" ||
-                    (expected.mode === "moving" && i % 100 < 50),
-                left: expected.mode === "moving" && i % 240 < 80,
-                right: expected.mode === "moving" && i % 240 > 160,
-            },
-            FRAME_S
-        );
+        const input = {
+            fire:
+                expected.mode === "fire" ||
+                (expected.mode === "moving" && i % 100 < 50),
+            left: expected.mode === "moving" && i % 240 < 80,
+            right: expected.mode === "moving" && i % 240 > 160,
+        };
+        step(game, input, FRAME_S);
         digest.update(game.memory);
         digest.update(
             JSON.stringify({
@@ -366,6 +370,80 @@ for (const expected of reference.trajectories) {
     );
     assert.equal(gameHash(game), expected.finalStateSha256);
 }
+let partitionChecks = 0;
+const soundCoverage = new Set<string>();
+const masks = Array.from({ length: 8 }, (_, mask) => ({
+    left: Boolean(mask & 1),
+    right: Boolean(mask & 2),
+    fire: Boolean(mask & 4),
+}));
+const transitions = newGame();
+const splitTransitions = newGame();
+for (const from of masks)
+    for (const to of masks) {
+        for (const input of [from, to])
+            for (const dt of [
+                0,
+                FRAME_S / 4,
+                FRAME_S / 2,
+                FRAME_S,
+                FRAME_S * 2,
+                FRAME_S * 3 + FRAME_S / 3,
+            ]) {
+                step(transitions, input, dt);
+                step(splitTransitions, input, dt / 2);
+                step(splitTransitions, input, dt / 2);
+                assert.deepEqual(
+                    transitions.cpu.save(),
+                    splitTransitions.cpu.save()
+                );
+                assert.deepEqual(transitions.memory, splitTransitions.memory);
+                assert.deepEqual(transitions.events, splitTransitions.events);
+                assert.ok(
+                    Math.abs(transitions.elapsed - splitTransitions.elapsed) <
+                        1e-9
+                );
+                assert.equal(
+                    gameHash(transitions),
+                    gameHash({
+                        ...splitTransitions,
+                        elapsed: transitions.elapsed,
+                    })
+                );
+                transitions.events.length = splitTransitions.events.length = 0;
+                partitionChecks++;
+            }
+    }
+let deaths = 0;
+let highestScore = 0;
+for (const seed of [1, 42, 1978]) {
+    let game = newGame();
+    let random = seed;
+    for (let frame = 0; frame < 6000; frame++) {
+        random = (Math.imul(random, 1664525) + 1013904223) >>> 0;
+        const input = masks[(random >>> 24) & 7];
+        step(game, input, FRAME_S);
+        for (const event of game.events)
+            soundCoverage.add(`${event.port}:${event.value}`);
+        game.events.length = 0;
+        highestScore = Math.max(highestScore, game.score);
+        if (game.over) {
+            deaths++;
+            game = newGame();
+            assert.equal(gameHash(game), reference.initialStateSha256);
+        }
+    }
+}
+const untilOver = newGame();
+for (let frame = 0; frame < 12000 && !untilOver.over; frame++) {
+    step(untilOver, idle, FRAME_S);
+    for (const event of untilOver.events)
+        soundCoverage.add(`${event.port}:${event.value}`);
+    untilOver.events.length = 0;
+}
+assert.equal(untilOver.over, true, "idle run reaches native game over");
+assert.ok(deaths > 0, "seeded runs exercise game over and fresh restarts");
+assert.ok(highestScore > 0, "seeded runs score native hits");
 console.log(
-    "invaders: ROM hashes, sprite pixels, original controls, deterministic gameplay, next rack, CRT proportions, CPU timings, boot snapshots and pre-optimization trajectories passed"
+    `invaders: 2700 fixture gameplay frames and ${partitionChecks} frame-partition checks passed; all 8 masks/64 transitions, fractional/multi-frame dt, seeded long runs, ${deaths} natural game overs/restarts, score ${highestScore}, ${soundCoverage.size} distinct sound-port events; ROM, sprites, bounds, next rack and snapshot isolation passed`
 );
