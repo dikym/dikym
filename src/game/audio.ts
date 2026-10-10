@@ -14,6 +14,11 @@ const SAMPLES = [
 ];
 
 export const createArcadeAudio = () => {
+    // iOS plays Web Audio as "ambient", which the silent switch mutes; "playback" ignores the switch.
+    const session = (
+        navigator as Navigator & { audioSession?: { type: string } }
+    ).audioSession;
+    if (session) session.type = "playback";
     let context: AudioContext;
     try {
         context = new AudioContext();
