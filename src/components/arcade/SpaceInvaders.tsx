@@ -461,6 +461,16 @@ const SpaceInvaders: React.FC<SpaceInvadersProps> = ({
         };
     }, [requestClose, clearInput, setInput]);
 
+    // iOS shows its magnifier on a long press even with user-select: none; cancelling touchstart stops it.
+    useEffect(() => {
+        const controls = sectionRef.current?.querySelector(
+            ".arcade-touch-controls"
+        );
+        const prevent = (e: Event) => e.preventDefault();
+        controls?.addEventListener("touchstart", prevent, { passive: false });
+        return () => controls?.removeEventListener("touchstart", prevent);
+    }, []);
+
     // Game loop.
     useEffect(() => {
         const ctx = canvasRef.current?.getContext("2d");
