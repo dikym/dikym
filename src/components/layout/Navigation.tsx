@@ -5,6 +5,7 @@ import MobileMenu from "./MobileMenu.tsx";
 interface NavigationProps {
     activeSection: string;
     isMobileMenuOpen: boolean;
+    mobileMenuButtonRef: React.RefObject<HTMLButtonElement | null>;
     onScrollToSection: (sectionId: string) => void;
     onToggleMobileMenu: () => void;
 }
@@ -18,6 +19,7 @@ const navigationItems: NavigationItem[] = [
 const Navigation: React.FC<NavigationProps> = ({
     activeSection,
     isMobileMenuOpen,
+    mobileMenuButtonRef,
     onScrollToSection,
     onToggleMobileMenu,
 }) => {
@@ -110,6 +112,7 @@ const Navigation: React.FC<NavigationProps> = ({
                     </button>
 
                     <button
+                        ref={mobileMenuButtonRef}
                         onClick={onToggleMobileMenu}
                         aria-label={
                             isMobileMenuOpen ? "Close menu" : "Open menu"

@@ -16,7 +16,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
     return (
         <div
             id="mobile-menu"
-            aria-hidden={!isOpen}
+            inert={!isOpen}
             className={`menu-sheet bg-page fixed inset-0 z-[60] min-[961px]:hidden ${isOpen ? "is-open" : ""}`}
         >
             <div className="flex h-full flex-col justify-between px-[calc(var(--gutter)+var(--inset))] pt-[calc(var(--nav-h)+clamp(24px,5vh,44px))] pb-[clamp(28px,5vh,48px)]">
@@ -32,7 +32,6 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
                             </span>
                             <button
                                 onClick={() => onScrollToSection(item.id)}
-                                tabIndex={isOpen ? 0 : -1}
                                 className={`flex-1 cursor-pointer py-[clamp(14px,2.4vh,22px)] text-left text-[clamp(30px,9vw,44px)] leading-[1.06] font-medium tracking-[-0.03em] ${
                                     activeSection === item.id
                                         ? "text-amber-2"
@@ -50,11 +49,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
                         { "--i": navigationItems.length } as React.CSSProperties
                     }
                 >
-                    <a
-                        href="mailto:hello@dikym.me"
-                        tabIndex={isOpen ? 0 : -1}
-                        className="text-ink"
-                    >
+                    <a href="mailto:hello@dikym.me" className="text-ink">
                         hello@dikym.me
                     </a>
                     <span>Bali, Indonesia</span>
