@@ -2,6 +2,7 @@
 // node tests/arcade.check.mjs http://127.0.0.1:5173
 import assert from "node:assert/strict";
 import { writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 
 const tabs = await fetch("http://127.0.0.1:9222/json").then(r => r.json());
 const socket = new WebSocket(
@@ -51,8 +52,12 @@ const waitFor = async expression => {
         `Timed out: ${expression}\n${JSON.stringify(await evaluate(`({width:innerWidth,height:innerHeight,scrollY,sections:[...document.querySelectorAll('main > section, .arcade-section, footer')].map(e=>({id:e.id,top:e.getBoundingClientRect().top,height:e.getBoundingClientRect().height}))})`))}`
     );
 };
-const click = selector =>
-    evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`);
+const click = async selector => {
+    await evaluate(
+        `document.querySelector(${JSON.stringify(selector)}).click()`
+    );
+    await evaluate("if (window.tickArcade) tickArcade(3)");
+};
 const scrollStyles = () =>
     evaluate(`['overflow', 'overflowAnchor', 'touchAction', 'scrollbarGutter']
         .map(property => document.documentElement.style[property])`);
@@ -691,6 +696,18 @@ try {
     const readyFrame = await evaluate(
         'document.querySelector("canvas").toDataURL()'
     );
+    assert.equal(
+        createHash("sha256")
+            .update(Buffer.from(readyFrame.split(",")[1], "base64"))
+            .digest("hex"),
+        "7a03c5d0b1a80c8486c0c29abd61bb68569cd9423eea9f714bd3468c709e8ee9",
+        "initial canvas PNG matches the native baseline"
+    );
+    assert.equal(
+        await evaluate("arcadeAudioContexts.length"),
+        0,
+        "no AudioContext before Start"
+    );
     const crtRatio = await evaluate(
         `(() => { const c=document.querySelector('canvas'),r=c.getBoundingClientRect(); return (r.height/c.height)/(r.width/c.width); })()`
     );
@@ -1077,6 +1094,7 @@ try {
     }, 16)`);
     await key("keyDown", "Escape", "Escape");
     await key("keyUp", "Escape", "Escape");
+    await evaluate("tickArcade(3)");
     await checkScrollLocked();
     await new Promise(resolve => setTimeout(resolve, 350));
     const closing = await evaluate(`(() => {
@@ -1623,9 +1641,12 @@ try {
         );
         const originalScroll = await evaluate("scrollY");
         for (const opening of [true, false]) {
-            await evaluate(`window.motionSamples = []; window.motionStart = performance.now();
+            await evaluate(`window.motionSamples = []; window.motionAnimation = null;
                 window.trackMotion = () => {
-                    motionSamples.push({time: performance.now() - motionStart, scrollY});
+                    const section = document.querySelector('.arcade-section');
+                    const animation = section?.getAnimations().find(animation => animation.playState !== 'idle');
+                    if (animation) window.motionAnimation = animation;
+                    motionSamples.push({time: Number(motionAnimation?.currentTime ?? 0), scrollY});
                     window.motionFrame = requestAnimationFrame(trackMotion);
                 }; trackMotion();`);
             await click(opening ? ".arcade-trigger" : ".arcade-exit");

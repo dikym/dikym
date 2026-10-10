@@ -3,6 +3,31 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
 // https://vite.dev/config/
-export default defineConfig({
-    plugins: [react(), tailwindcss()],
-});
+export default defineConfig(({ command }) => ({
+    plugins: [
+        react(),
+        tailwindcss(),
+        {
+            name: "arcade-module-url",
+            resolveId(id) {
+                if (id === "virtual:arcade-url") return "\0" + id;
+            },
+            load(id) {
+                if (id !== "\0virtual:arcade-url") return;
+                // Retry needs the built chunk URL to bypass the browser's failed import cache.
+                return command === "serve"
+                    ? 'export default "/src/components/arcade/SpaceInvaders.tsx";'
+                    : `export default import.meta.ROLLUP_FILE_URL_${this.emitFile(
+                          {
+                              type: "chunk",
+                              id: new URL(
+                                  "./src/components/arcade/SpaceInvaders.tsx",
+                                  import.meta.url
+                              ).pathname,
+                              preserveSignature: "strict",
+                          }
+                      )};`;
+            },
+        },
+    ],
+}));

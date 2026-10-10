@@ -296,6 +296,24 @@ const SpaceInvaders: React.FC<SpaceInvadersProps> = ({
             ],
             { ...timing, fill: "forwards" }
         );
+        let startFrame = 0;
+        if (!reduced) {
+            reveal.pause();
+            flight.pause();
+            reveal.currentTime = flight.currentTime = 0;
+            startFrame = requestAnimationFrame(() => {
+                const readyAt = performance.now();
+                const start = (stamp: number) => {
+                    if (stamp < readyAt) {
+                        startFrame = requestAnimationFrame(start);
+                        return;
+                    }
+                    reveal.play();
+                    flight.play();
+                };
+                startFrame = requestAnimationFrame(start);
+            });
+        }
         // Lift Contact with the reveal instead of jumping to the game afterward.
         let scrollFrame = 0;
         const followReveal = () => {
@@ -308,7 +326,8 @@ const SpaceInvaders: React.FC<SpaceInvadersProps> = ({
         };
         scrollFrame = requestAnimationFrame(followReveal);
         const resize = () => {
-            if (reveal.playState !== "running") return;
+            if (reveal.playState !== "running" && reveal.playState !== "paused")
+                return;
             const position = captureScrollPosition();
             fitArcadeToViewport(section);
             const height = section
@@ -394,12 +413,13 @@ const SpaceInvaders: React.FC<SpaceInvadersProps> = ({
         return () => {
             cancelled = true;
             window.removeEventListener("resize", resize);
-            if (reveal.playState === "running")
+            if (reveal.playState === "running" || reveal.playState === "paused")
                 interruptedRef.current = {
                     height: section.getBoundingClientRect().height,
                     alien: alien.getBoundingClientRect(),
                     color: getComputedStyle(alien).color,
                 };
+            cancelAnimationFrame(startFrame);
             cancelAnimationFrame(scrollFrame);
             unlockScroll();
             reveal.cancel();

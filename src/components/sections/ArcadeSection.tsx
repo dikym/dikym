@@ -1,26 +1,67 @@
-import {
-    lazy,
-    Suspense,
-    useCallback,
-    useLayoutEffect,
-    useRef,
-    useState,
-} from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import CrabSprite from "../arcade/CrabSprite";
+import arcadeUrl from "virtual:arcade-url";
 import {
     captureScrollPosition,
     scrollPositionTop,
 } from "../../hooks/usePreserveScrollPosition";
 
-const SpaceInvaders = lazy(() => import("../arcade/SpaceInvaders"));
+let preparation: Promise<typeof import("../arcade/SpaceInvaders")> | null =
+    null;
+let preparedComponent: typeof import("../arcade/SpaceInvaders").default | null =
+    null;
+let failedAttempts = 0;
+const loadGame = () =>
+    (preparation ??= (
+        failedAttempts
+            ? import(/* @vite-ignore */ `${arcadeUrl}?retry=${failedAttempts}`)
+            : import("../arcade/SpaceInvaders")
+    ).then(
+        module => {
+            preparedComponent = module.default;
+            return module;
+        },
+        error => {
+            preparation = null;
+            failedAttempts++;
+            throw error;
+        }
+    ));
+const prepare = () => {
+    void loadGame().catch(error => console.error("Arcade preload:", error));
+    void document.fonts
+        .load('14px "Space Invaders"')
+        .catch(error => console.error("Arcade font preload:", error));
+};
 
 const ArcadeSection = () => {
+    const [GameComponent, setComponent] = useState(() => preparedComponent);
+    const [pending, setPending] = useState(false);
+    const [failed, setFailed] = useState(false);
+    const requestRef = useRef<symbol | null>(null);
     const [origin, setOrigin] = useState<DOMRect | null>(null);
     const open = origin !== null;
     const triggerRef = useRef<HTMLButtonElement>(null);
     const openingScrollRef = useRef<ReturnType<
         typeof captureScrollPosition
     > | null>(null);
+    useLayoutEffect(
+        () => () => {
+            requestRef.current = null;
+        },
+        []
+    );
+    useLayoutEffect(() => {
+        if (!pending) return;
+        const cancel = (event: KeyboardEvent) => {
+            if (event.key !== "Escape") return;
+            requestRef.current = null;
+            setPending(false);
+            triggerRef.current?.focus({ preventScroll: true });
+        };
+        window.addEventListener("keydown", cancel);
+        return () => window.removeEventListener("keydown", cancel);
+    }, [pending]);
     useLayoutEffect(() => {
         if (origin || !openingScrollRef.current) return;
         const position = openingScrollRef.current;
@@ -34,6 +75,7 @@ const ArcadeSection = () => {
         openingScrollRef.current = null;
     }, [origin]);
     const close = useCallback((finished: boolean) => {
+        requestRef.current = null;
         setOrigin(null);
         triggerRef.current?.focus({ preventScroll: true });
         if (
@@ -52,43 +94,81 @@ const ArcadeSection = () => {
         }
     }, []);
 
+    const requestOpen = () => {
+        if (requestRef.current) return;
+        const request = Symbol();
+        requestRef.current = request;
+        setFailed(false);
+        prepare();
+        const mount = (component: NonNullable<typeof preparedComponent>) => {
+            if (requestRef.current !== request) return;
+            const rect = triggerRef
+                .current!.querySelector("svg")!
+                .getBoundingClientRect();
+            openingScrollRef.current = captureScrollPosition();
+            setComponent(() => component);
+            setOrigin(
+                new DOMRect(
+                    rect.x,
+                    rect.y + window.scrollY,
+                    rect.width,
+                    rect.height
+                )
+            );
+            setPending(false);
+        };
+        if (preparedComponent) mount(preparedComponent);
+        else {
+            setPending(true);
+            void loadGame().then(
+                module => mount(module.default),
+                error => {
+                    if (requestRef.current !== request) return;
+                    requestRef.current = null;
+                    setPending(false);
+                    setFailed(true);
+                    console.error("Arcade load:", error);
+                }
+            );
+        }
+    };
+
     return (
         <div className="arcade-entry">
             <div id="arcade" className="arcade-slot">
-                {origin && (
-                    <Suspense fallback={null}>
-                        <SpaceInvaders
-                            onClose={close}
-                            origin={origin}
-                            openingScroll={openingScrollRef.current!}
-                        />
-                    </Suspense>
+                {origin && GameComponent && (
+                    <GameComponent
+                        onClose={close}
+                        origin={origin}
+                        openingScroll={openingScrollRef.current!}
+                    />
                 )}
                 <button
                     ref={triggerRef}
                     className="arcade-trigger"
                     aria-label="Open arcade"
                     aria-expanded={open}
+                    aria-busy={pending}
                     aria-controls="arcade"
-                    tabIndex={open ? -1 : 0}
-                    onClick={() => {
-                        if (open) return;
-                        openingScrollRef.current = captureScrollPosition();
-                        const rect = triggerRef
-                            .current!.querySelector("svg")!
-                            .getBoundingClientRect();
-                        setOrigin(
-                            new DOMRect(
-                                rect.x,
-                                rect.y + window.scrollY,
-                                rect.width,
-                                rect.height
-                            )
-                        );
+                    onPointerEnter={event => {
+                        if (event.pointerType !== "touch") prepare();
                     }}
+                    onFocus={prepare}
+                    tabIndex={open ? -1 : 0}
+                    onClick={requestOpen}
                 >
                     <CrabSprite />
                 </button>
+                {pending && (
+                    <span className="sr-only" role="status">
+                        Loading arcade. Press Escape to cancel.
+                    </span>
+                )}
+                {failed && (
+                    <p role="alert" className="text-center text-sm">
+                        Arcade could not load. Try again.
+                    </p>
+                )}
             </div>
         </div>
     );
