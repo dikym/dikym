@@ -46,8 +46,10 @@ export const fitArcadeToViewport = (section: HTMLElement) => {
         const navbarBottom =
             document.querySelector("header > nav")?.getBoundingClientRect()
                 .bottom ?? 0;
+        // +1: the footer's top border overlaps the arcade's last row, so push that row below the viewport.
         const available =
-            window.innerHeight -
+            window.innerHeight +
+            1 -
             navbarBottom -
             (panel.getBoundingClientRect().height - game.height);
         if (game.width && game.height)
