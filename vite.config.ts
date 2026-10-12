@@ -30,4 +30,15 @@ export default defineConfig(({ command }) => ({
             },
         },
     ],
+    build: {
+        rollupOptions: {
+            input: {
+                main: new URL("./index.html", import.meta.url).pathname,
+                spaceInvaders: new URL(
+                    "./space-invaders/index.html",
+                    import.meta.url
+                ).pathname,
+            },
+        },
+    },
 }));

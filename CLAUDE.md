@@ -18,7 +18,7 @@ src/
 ├── main.tsx             # Entry point
 ├── style.css            # Tailwind entry
 ├── components/
-│   ├── arcade/          # SpaceInvaders, CrabSprite
+│   ├── arcade/          # SpaceInvaders, AttractScreen, CrabSprite
 │   ├── layout/          # Navigation, MobileMenu, Footer, Curtain
 │   ├── sections/        # Hero, About, Skills, Projects, Contact, Arcade
 │   └── ui/              # Small reusable pieces (ProjectCard, SkillCard, SocialLinks)
@@ -28,6 +28,7 @@ src/
 └── types/               # Shared interfaces (Skill, SkillCategory, Project, NavigationItem)
 
 public/                  # Icons, fonts, audio, licenses, favicon, social preview
+space-invaders/          # Second Vite entry: standalone page for space-invaders.dikym.me
 tests/                   # Browser and engine checks, with independent fixtures
 docs/                    # Space Invaders sources and implementation notes
 ```

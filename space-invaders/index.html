@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+        <link
+            href="/fonts/space-invaders/space-invaders-extended.otf"
+            rel="preload"
+            as="font"
+            type="font/otf"
+            crossorigin
+        />
+        <title>Space Invaders — dikym</title>
+        <meta
+            content="Play Space Invaders (1978) in the browser, running the original arcade program."
+            name="description"
+        />
+        <link href="https://space-invaders.dikym.me/" rel="canonical" />
+        <meta content="website" property="og:type" />
+        <meta content="https://space-invaders.dikym.me/" property="og:url" />
+        <meta content="Space Invaders — dikym" property="og:title" />
+        <meta
+            content="Play Space Invaders (1978) in the browser, running the original arcade program."
+            property="og:description"
+        />
+        <meta content="#000000" name="theme-color" />
+        <link href="/src/style.css" rel="stylesheet" />
+        <link href="/favicon.ico" rel="icon" type="image/x-icon" />
+        <link
+            href="/favicon-32x32.png"
+            rel="icon"
+            type="image/png"
+            sizes="32x32"
+        />
+        <link
+            href="/favicon-16x16.png"
+            rel="icon"
+            type="image/png"
+            sizes="16x16"
+        />
+        <link
+            href="/apple-touch-icon.png"
+            rel="apple-touch-icon"
+            sizes="180x180"
+        />
+    </head>
+    <body class="bg-black">
+        <noscript>
+            <p class="p-4 text-white">
+                Space Invaders needs JavaScript to run.
+            </p>
+        </noscript>
+        <div id="root"></div>
+        <script src="/src/space-invaders.tsx" type="module"></script>
+    </body>
+</html>
