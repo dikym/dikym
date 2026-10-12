@@ -153,6 +153,8 @@
 @layer base {
     html {
         scroll-behavior: smooth;
+        /* No rubber-band bounce past the page edges (also stops pull-to-refresh). */
+        overscroll-behavior: none;
     }
     body {
         background: var(--page);
@@ -463,6 +465,17 @@
     container-type: inline-size;
     margin-inline: var(--rule-x);
 }
+/* Standalone page (space-invaders.dikym.me): the same container variables as the portfolio slot. */
+.arcade-page {
+    --arcade-control-gap: 12px;
+    --arcade-screen-padding: clamp(12px, 3vw, 32px);
+    container-type: inline-size;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 100dvh;
+    background: #000;
+}
 .arcade-slot:has(.arcade-section) {
     border-top: 1px solid var(--line);
     /* Skip the end pixels: the sheet's side rules already draw there, and two translucent lines would stack. */
@@ -586,14 +599,6 @@
     grid-template-columns: minmax(0, 1fr);
     gap: var(--arcade-control-gap);
 }
-.arcade-label {
-    display: block;
-    font-family: var(--font-arcade);
-    font-size: inherit;
-    font-weight: 400;
-    text-transform: uppercase;
-    letter-spacing: 0;
-}
 .arcade-screen {
     padding: 20px var(--arcade-screen-padding);
     background: var(--page);
@@ -603,31 +608,64 @@
     margin-inline: auto;
     font-size: 14px;
 }
-.arcade-game:has(canvas:focus-visible) {
+/* Whenever keys reach the game, however focus got there: the field, or the section after a click on the cabinet. */
+.arcade-section:is(:focus, :has(canvas:focus)) .arcade-game {
     outline: 2px solid var(--arcade-accent);
     outline-offset: 4px;
 }
+/* ROM rows 0–31: header cells at y=8 ($241E), scores at y=24 ($271C, $2F1C, $391C). */
 .arcade-scoreboard {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 16px;
+    position: relative;
     width: 448px;
+    height: calc(32 * 2px * 7 / 6);
     zoom: var(--arcade-ui-scale, 1);
     margin-inline: auto;
-    padding-bottom: 16px;
-    padding-inline: 16px;
 }
 .arcade-scoreboard > div {
-    text-align: center;
+    display: contents;
+}
+.arcade-label,
+.arcade-scoreboard b {
+    position: absolute;
+    font-family: var(--font-arcade);
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1;
+    text-transform: uppercase;
+    scale: 1 calc(7 / 6);
+    transform-origin: top;
+}
+.arcade-label {
+    top: calc(8 * 2px * 7 / 6);
+    letter-spacing: 0;
 }
 .arcade-scoreboard b {
-    display: block;
-    margin-top: 10px;
-    font-family: var(--font-arcade);
-    font-size: inherit;
-    font-weight: 400;
-    line-height: 1.1;
+    top: calc(24 * 2px * 7 / 6);
     font-variant-numeric: tabular-nums;
+}
+/* Ink starts one column into each ROM cell, like the bottom row. */
+.arcade-scoreboard > :nth-child(1) .arcade-label {
+    left: 18px;
+}
+.arcade-scoreboard > :nth-child(1) b {
+    left: 50px;
+}
+.arcade-scoreboard > :nth-child(2) .arcade-label {
+    left: 162px;
+}
+.arcade-scoreboard > :nth-child(2) b {
+    left: 178px;
+}
+.arcade-scoreboard > :nth-child(3) .arcade-label {
+    left: 306px;
+}
+.arcade-scoreboard > :nth-child(3) b {
+    left: 338px;
+}
+/* Other arcade-font text keeps the ROM's 7/6 pixel aspect too. */
+.arcade-stretch {
+    display: inline-block;
+    scale: 1 calc(7 / 6);
 }
 .arcade-playfield {
     position: relative;
@@ -641,9 +679,6 @@
 .arcade-section:focus {
     outline: none;
 }
-.arcade-status > [role="status"] {
-    font-size: inherit;
-}
 .arcade-ufo-points {
     position: absolute;
     width: calc(1em * 18 / 7);
@@ -652,38 +687,31 @@
     color: #ff2020;
     font-size: calc(14px * var(--arcade-ui-scale, 1));
 }
-.arcade-title-screen {
+/* Subdomain title screen: ROM cells are 8 of 224 columns, rows 7/6 taller (PIXEL_ASPECT). */
+.arcade-attract {
     position: absolute;
     inset: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: clamp(8px, 2vh, 16px);
-    padding: 12px 4px;
+    overflow: hidden;
     background: var(--page);
-    text-align: center;
 }
-.arcade-title-screen > :not(.arcade-title) {
-    zoom: var(--arcade-fit-scale, 1);
-}
-.arcade-ready {
-    top: 52%;
-    gap: 12px;
-    padding: 8px 4px;
-}
-.arcade-title {
+.arcade-attract-text {
+    position: absolute;
     font-family: var(--font-arcade);
-    font-size: clamp(20px, 7cqi, 32px);
-    font-weight: 400;
-    line-height: 1.3;
-    text-transform: uppercase;
-    color: var(--arcade-accent);
+    font-size: calc(100cqi * 8 / 224);
+    line-height: 1;
+    white-space: pre;
+    scale: 1 calc(7 / 6);
+    transform-origin: top;
 }
-.arcade-instructions {
-    color: var(--ink-2);
-    font-size: 0.875rem;
-    line-height: 1.5;
+/* Mirrors the cap rows (1/8 to 1 em) in place while keeping the 7/6 stretch. */
+.arcade-attract-flipped {
+    scale: 1 calc(-7 / 6);
+    transform-origin: 50% calc(1.125em * 7 / 13);
+}
+.arcade-attract-sprite {
+    position: absolute;
+    width: calc(100% * 16 / 224);
+    height: calc(100% * 8 / 208);
 }
 .arcade-button {
     display: inline-flex;
@@ -720,21 +748,19 @@
 .arcade-section canvas:focus-visible {
     outline: none;
 }
-.arcade-section :is(.arcade-start, .arcade-exit, .arcade-sound):focus {
+/* Tab shows the ring on the 44px target edge, clear of the neighbouring button. */
+.arcade-section :is(.arcade-exit, .arcade-sound):focus-visible {
+    outline-offset: 0;
+}
+/* The open and close animations park focus on Close; that is not a Tab. */
+.arcade-section:not(.is-expanded) .arcade-exit:focus-visible {
     outline: none;
 }
-.arcade-start,
 .arcade-fire {
     border-color: var(--arcade-accent);
     background: #000000;
     color: #ffffff;
 }
-.arcade-start {
-    min-width: 144px;
-    margin-top: 4px;
-    font-size: 1rem;
-}
-.arcade-start:hover:not(:disabled),
 .arcade-fire:hover:not(:disabled) {
     background: #222222;
 }
@@ -747,68 +773,142 @@
     background: transparent;
     color: var(--ink-2);
 }
-.arcade-lives {
-    display: inline-flex;
-    align-items: center;
-    gap: 2px;
+/* ROM rows 240–255; x from $2501, $2701 and $3501 (docs/space-invaders-1978.md). */
+.arcade-status {
+    position: relative;
+    width: 448px;
+    height: calc(16 * 2px * 7 / 6);
+    zoom: var(--arcade-ui-scale, 1);
+    margin-inline: auto;
+    font-family: var(--font-arcade);
+    font-size: 16px;
+    line-height: 1;
+    text-transform: uppercase;
 }
+.arcade-status > * {
+    position: absolute;
+    top: 0;
+}
+.arcade-lives {
+    left: 16px;
+    display: flex;
+    align-items: flex-start;
+}
+/* ROM glyphs leave cell column 0 blank; the font's ink starts at its box edge. */
 .arcade-life-count {
-    flex: 0 0 1em;
+    flex: 0 0 32px;
+    padding-left: 2px;
+}
+.arcade-life-count,
+.arcade-status > [role="status"] {
+    scale: 1 calc(7 / 6);
+    transform-origin: top;
+}
+.arcade-status > [role="status"] {
+    left: 274px;
 }
 .arcade-lives svg {
     width: 32px;
     height: calc(8px * 2 * 7 / 6);
-}
-.arcade-lives svg:first-of-type {
-    margin-left: 10px;
-}
-.arcade-status {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    gap: 4px 12px;
-    width: 448px;
-    zoom: var(--arcade-ui-scale, 1);
-    margin-inline: auto;
-    padding-top: 2px;
-    padding-inline: 16px 32px;
-    font-family: var(--font-arcade);
-    font-size: inherit;
-    text-transform: uppercase;
 }
 .arcade-controls {
     width: min(100%, 448px);
     margin-inline: auto;
     padding: 0 12px 3px;
 }
+/* Subdomain page: focus never leaves the game, so it needs no focus outline. */
+.arcade-page :focus-visible,
+.arcade-page .arcade-section:is(:focus, :has(canvas:focus)) .arcade-game {
+    outline: none;
+}
+/* Subdomain page: sound sits in the window's top-right corner (the page is the containing block and never scrolls). */
+.arcade-page .arcade-marquee {
+    position: fixed;
+}
+/* Subdomain page: credit line and the copyright notice it opens. */
+.arcade-credit {
+    margin-top: 10px;
+    color: var(--ink-2);
+    font-size: 0.75rem;
+    text-align: center;
+}
+.arcade-credit :is(a, button),
+.arcade-notice a {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+}
+.arcade-notice {
+    max-width: min(28rem, calc(100vw - 32px));
+    margin: auto;
+    padding: 20px;
+    border: 1px solid #555555;
+    background: #000000;
+    color: #ffffff;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+.arcade-notice::backdrop {
+    background: rgb(0 0 0 / 0.75);
+}
+.arcade-notice h2 {
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+.arcade-notice p + p {
+    margin-top: 8px;
+}
+.arcade-notice form {
+    margin-top: 16px;
+    text-align: right;
+}
+.arcade-notice form button {
+    padding: 6px 14px;
+    border: 1px solid #cccccc;
+    color: #ffffff;
+    cursor: pointer;
+}
 .arcade-keyboard-hint {
     display: flex;
     justify-content: center;
     flex-wrap: wrap;
-    gap: 12px 28px;
+    gap: 8px 16px;
     color: var(--ink-2);
-    font-size: 0.875rem;
+    font-size: 0.75rem;
 }
 .arcade-keyboard-hint > span {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     white-space: nowrap;
 }
 .arcade-keyboard-hint kbd {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 28px;
-    height: 28px;
-    padding-inline: 8px;
+    min-width: 22px;
+    height: 22px;
+    padding-inline: 5px;
     border: 1px solid var(--ink-2);
     background: var(--sheet);
     box-shadow: 0 1px 0 var(--ink-2);
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    font-size: 0.8125rem;
+    font-size: 0.6875rem;
     font-weight: 500;
     line-height: 1;
+}
+.arcade-keyboard-hint kbd svg {
+    width: 12px;
+    height: 12px;
+}
+/* How to start or play again, shown on touch screens in place of the keyboard hints. */
+.arcade-tap-hint {
+    display: none;
+    margin-bottom: 10px;
+    color: var(--ink-2);
+    font-size: 0.875rem;
+    text-align: center;
 }
 .arcade-touch-controls {
     display: none;
@@ -836,6 +936,9 @@
     }
     .arcade-keyboard-hint {
         display: none;
+    }
+    .arcade-tap-hint {
+        display: block;
     }
 }
 @media (prefers-reduced-motion: reduce) {

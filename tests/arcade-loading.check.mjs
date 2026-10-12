@@ -59,7 +59,9 @@ const ready = () =>
     );
 const opened = () =>
     waitFor(() =>
-        evaluate("document.querySelector('.arcade-start')?.disabled === false")
+        evaluate(
+            "!!document.querySelector('.arcade-section.is-expanded') && !document.querySelector('.arcade-arriving-alien')"
+        )
     );
 const close = async () => {
     await evaluate("document.querySelector('.arcade-exit').click()");
@@ -294,8 +296,14 @@ try {
     await navigate("menu");
     await evaluate("document.querySelector('.arcade-trigger').click()");
     await opened();
-    await evaluate("document.querySelector('.arcade-start').click()");
-    await waitFor(() => evaluate("!document.querySelector('.arcade-start')"));
+    await evaluate(
+        "document.querySelector('.arcade-section').dispatchEvent(new KeyboardEvent('keydown', { code: 'Enter', key: 'Enter', bubbles: true }))"
+    );
+    await waitFor(() =>
+        evaluate(
+            "!!document.querySelector('.arcade-status [aria-label=Playing]')"
+        )
+    );
     await evaluate(
         `window.originalCanvas = document.querySelector('canvas'); document.querySelector('[aria-label="Open menu"]').click()`
     );
@@ -304,7 +312,7 @@ try {
     );
     assert.equal(
         await evaluate(
-            "originalCanvas === document.querySelector('canvas') && !document.querySelector('.arcade-start')"
+            "originalCanvas === document.querySelector('canvas') && !!document.querySelector('.arcade-status [aria-label=Playing]')"
         ),
         true,
         "App rerender keeps the running game and canvas"

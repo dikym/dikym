@@ -89,11 +89,15 @@ try {
         window.cancelAnimationFrame=id=>{if(id<0)benchFrames.delete(id);else benchRealCancel(id);};
         window.benchTick=()=>{benchNow+=(320*262)/(19968000/4)*1000;const callbacks=[...benchFrames.values()];benchFrames.clear();const start=performance.now();callbacks.forEach(callback=>callback(benchNow));benchDurations.push(performance.now()-start);};
         document.querySelector('.arcade-trigger').click();`);
-    await waitFor("document.querySelector('.arcade-start')?.disabled===false");
-    await evaluate("benchNow=performance.now();benchTick();benchDurations=[]");
-    await evaluate("document.querySelector('.arcade-start').click()");
     await waitFor(
-        "!document.querySelector('.arcade-start') && benchFrames.size===1"
+        "!!document.querySelector('.arcade-section.is-expanded') && !document.querySelector('.arcade-arriving-alien')"
+    );
+    await evaluate("benchNow=performance.now();benchTick();benchDurations=[]");
+    await evaluate(
+        "document.querySelector('.arcade-section').dispatchEvent(new KeyboardEvent('keydown', { code: 'Enter', key: 'Enter', bubbles: true }))"
+    );
+    await waitFor(
+        "!!document.querySelector('.arcade-status [aria-label=Playing]') && benchFrames.size===1"
     );
     const fullLoop = await evaluate(`(() => {
         const key=(type,code)=>document.querySelector('canvas').dispatchEvent(new KeyboardEvent(type,{code,bubbles:true}));
@@ -103,7 +107,7 @@ try {
         }
         const times=benchDurations.slice(30).sort((a,b)=>a-b);
         const ctx=document.querySelector('canvas').getContext('2d');
-        return {samples:times.length,medianMs:times[Math.floor(times.length*.5)],p95Ms:times[Math.floor(times.length*.95)],meanMs:times.reduce((a,b)=>a+b,0)/times.length,gameOver:!!document.querySelector('.arcade-start'),canvas:document.querySelector('canvas').toDataURL()};
+        return {samples:times.length,medianMs:times[Math.floor(times.length*.5)],p95Ms:times[Math.floor(times.length*.95)],meanMs:times.reduce((a,b)=>a+b,0)/times.length,gameOver:!!document.querySelector('.arcade-game-over'),canvas:document.querySelector('canvas').toDataURL()};
     })()`);
     assert.equal(fullLoop.gameOver, false);
     const canvas = fullLoop.canvas;

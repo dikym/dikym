@@ -74,16 +74,18 @@ try {
         "!!document.querySelector('.arcade-trigger') && !document.querySelector('.curtain')"
     );
     await evaluate("document.querySelector('.arcade-trigger').click()");
-    await wait("document.querySelector('.arcade-start')?.disabled === false");
+    await wait(
+        "!!document.querySelector('.arcade-section.is-expanded') && !document.querySelector('.arcade-arriving-alien')"
+    );
     await evaluate(`(() => {
         window.inputFrames = new Map(); let id = 0; let time = performance.now();
         window.requestAnimationFrame = cb => { inputFrames.set(++id, cb); return id; };
         window.cancelAnimationFrame = id => inputFrames.delete(id);
         window.tickInput = () => { time += 50; const frames = [...inputFrames.values()]; inputFrames.clear(); frames.forEach(cb => cb(time)); };
-        document.querySelector('.arcade-start').click();
+        document.querySelector('.arcade-section').dispatchEvent(new KeyboardEvent('keydown', { code: 'Enter', key: 'Enter', bubbles: true }));
     })()`);
     await wait(
-        "!document.querySelector('.arcade-start') && inputFrames.size > 0"
+        "!!document.querySelector('.arcade-status [aria-label=Playing]') && inputFrames.size > 0"
     );
     await send("Debugger.enable");
     const imported = await send("Runtime.evaluate", {
@@ -280,11 +282,13 @@ try {
     await evaluate(
         "auditGame.elapsed=0; auditGame.memory[0x20e7]=0; auditGame.memory[0x21ff]=0; auditGame.memory[0x2015]=0; tickInput()"
     );
-    await wait(
-        "document.querySelector('.arcade-start')?.textContent === 'Play again'"
+    await wait("!!document.querySelector('.arcade-game-over')");
+    await evaluate(
+        "document.querySelector('.arcade-section').dispatchEvent(new KeyboardEvent('keydown', { code: 'Enter', key: 'Enter', bubbles: true }))"
     );
-    await evaluate("document.querySelector('.arcade-start').click()");
-    await wait("!document.querySelector('.arcade-start')");
+    await wait(
+        "!!document.querySelector('.arcade-status [aria-label=Playing]')"
+    );
     assert.deepEqual(
         await evaluate("auditInput"),
         { left: false, right: false, fire: false },

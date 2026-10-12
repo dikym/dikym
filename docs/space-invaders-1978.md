@@ -72,8 +72,18 @@ height. Sprite bytes were already correct; changing physical proportions fixes
 that difference without shrinking or redrawing the sprites.
 
 The HTML scoreboard, spare-ship display and Start/close/sound/touch controls remain
-accessible site UI. The default HUD is 448px wide with 14px text and a 10px gap
-between labels and scores. A ResizeObserver measures the game width; CSS zoom
+accessible site UI. The default HUD is 448px wide. HUD text uses the ROM cell size:
+the `Space Invaders` font at 16px (advance 1 em = 8 columns; cap 7/8 em; ascent 1 em;
+descent 0) with `line-height: 1` and a vertical scale of 7/6, so caps are 7 game rows
+tall. The font's ink starts at its box edge while ROM glyphs leave cell column 0 blank,
+so ROM-positioned text is inset by one column. The bottom row follows the ROM: line at
+y=239, reserve cannons at y=240–247 from x=24, lives digit ink from x=9, `CREDIT` ink
+from x=137, and text caps at y=241–247. The scoreboard spans rows 0–31 like the
+ROM: header cells at y=8 (`$241E`) with ink from x=9, 81 and 153, and scores at y=24
+(`$271C`, `$2F1C`, `$391C`) with ink from x=25, 89 and 169. Every other arcade-font
+text (Game over, score, Start/Play again, Fire) keeps the same 7/6 vertical stretch;
+descriptions and keyboard shortcuts stay site UI.
+A ResizeObserver measures the game width; CSS zoom
 scales the whole scoreboard and lower status row uniformly. There is no nowrap
 or horizontal-only font transform. UFO bitmap digits use the same measured scale,
 and spare cannons match the canvas cannon size. The life count occupies a fixed
@@ -94,6 +104,34 @@ sprite bitmaps used by the site icon, idle preview and score overlay:
 | UFO and explosion                | `$1D64`, `$1D7C`                                | 24×8               |
 | Score digits                     | `$1ED0–$1F18`                                   | 8×8 cells          |
 
+## Subdomain title screen
+
+`space-invaders.dikym.me` is a second Vite entry (`space-invaders/index.html`);
+`vercel.json` rewrites that host's `/` to it. Without props, `SpaceInvaders` runs
+standalone: there is no portfolio transition, the close button links to
+`https://dikym.me/`, and Escape does nothing.
+
+Before the first start, `AttractScreen` replays the ROM's splash timing (`$0AEA`),
+measured by cold-booting the ROM. It omits the demo game and every coin screen.
+Frames count from the splash start:
+
+| Frame           | Event                                                        |
+| --------------- | ------------------------------------------------------------ |
+| 64 + 6i         | `PLAY` (`$3017`)                                             |
+| 88 + 6i         | `SPACE  INVADERS` (`$2B14`)                                  |
+| 242             | `*SCORE ADVANCE TABLE*` (`$2810`)                            |
+| 243             | icons (`$1DBE` coordinates)                                  |
+| 242 + 60r + 6j  | table rows (`$1DCF`)                                         |
+| 610 / 706 / 873 | approach, pull, push (`$1A95`, `$1BB0`, `$1FC9` descriptors) |
+| 1041            | the alien is erased; the Y stays at x=120–124                |
+
+A random half of page loads type `PLAy` with an upside-down Y, as the ROM's
+alternating `splashAnimate` flag does. Text uses the site font at ROM cell positions.
+The score-table icons and the Y-carrying alien are the ROM's own bitmaps; the pull
+and push images draw the Y themselves. `tests/attract.check.ts` compares every typed
+character, icon and carrier position with the ROM within ±1 frame, and every icon and
+carrier image with the ROM's bytes.
+
 ## Sound
 
 The invented oscillator/noise effects and start/win/game-over melodies were removed.
@@ -110,6 +148,12 @@ an electrical simulation of the analog sound board; speaker response, component
 tolerances and browser resampling can affect the heard result.
 
 ## Checks
+
+`node --experimental-strip-types tests/attract.check.ts` checks the title-screen
+timeline against a cold-booted ROM. `node tests/space-invaders-page.check.mjs
+[development-url]` checks the standalone page: fit without scrolling, both title
+variants frame by frame, keyboard/tap/button start, reduced motion, theme isolation
+and the home link.
 
 `node --experimental-strip-types tests/invaders.check.ts` checks all ROM hashes,
 every exported sprite bit, deterministic native gameplay, original cannon controls,

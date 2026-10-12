@@ -135,3 +135,39 @@ export const SCORE_GLYPHS: Record<string, string[]> = {
 export const CRAB = ALIEN_SPRITES[1].map(rows =>
     rows.map(row => row.slice(3, 14))
 );
+
+// ROM score table ($1DBE): the saucer's middle 16 columns, then the 30, 20 and 10 point aliens.
+export const ATTRACT_ICONS: string[][] = [
+    UFO.map(row => row.slice(4, 20)),
+    ALIEN_SPRITES[0][0],
+    ALIEN_SPRITES[1][1],
+    ALIEN_SPRITES[2][0],
+];
+
+// ROM splash carrier images ($1A95, $1BB0, $1FC9 descriptors, each with a second
+// frame $30 later). Pull and push draw the Y as part of the alien.
+export const CARRIER = {
+    approach: ALIEN_SPRITES[0],
+    // ROM $1BA0, $1BD0.
+    pull: [
+        sprite([
+            0x00, 0x03, 0x04, 0x78, 0x14, 0x13, 0x08, 0x1a, 0x3d, 0x68, 0xfc,
+            0xfc, 0x68, 0x3d, 0x1a, 0x00,
+        ]),
+        sprite([
+            0x00, 0x00, 0x03, 0x04, 0x78, 0x14, 0x0b, 0x19, 0x3a, 0x6d, 0xfa,
+            0xfa, 0x6d, 0x3a, 0x19, 0x00,
+        ]),
+    ],
+    // ROM $1F80, $1FB0.
+    push: [
+        sprite([
+            0x60, 0x10, 0x0f, 0x10, 0x60, 0x30, 0x18, 0x1a, 0x3d, 0x68, 0xfc,
+            0xfc, 0x68, 0x3d, 0x1a, 0x00,
+        ]),
+        sprite([
+            0x00, 0x60, 0x10, 0x0f, 0x10, 0x60, 0x38, 0x19, 0x3a, 0x6d, 0xfa,
+            0xfa, 0x6d, 0x3a, 0x19, 0x00,
+        ]),
+    ],
+};

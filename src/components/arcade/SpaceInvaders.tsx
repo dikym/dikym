@@ -5,6 +5,7 @@ import {
     useRef,
     useState,
 } from "react";
+import AttractScreen, { GameOverText } from "./AttractScreen";
 import CrabSprite from "./CrabSprite";
 import { createArcadeAudio } from "../../game/audio";
 import { ALIEN_SPRITES, PLAYER, SCORE_GLYPHS } from "../../game/sprites";
@@ -61,9 +62,10 @@ const KEYS: Record<string, keyof Input> = {
 };
 
 interface SpaceInvadersProps {
-    onClose: (finished: boolean) => void;
-    origin: DOMRect;
-    openingScroll: ReturnType<typeof captureScrollPosition>;
+    // All absent on the standalone subdomain page.
+    onClose?: (finished: boolean) => void;
+    origin?: DOMRect;
+    openingScroll?: ReturnType<typeof captureScrollPosition>;
 }
 
 interface Hud {
@@ -81,8 +83,8 @@ const SpaceInvaders: React.FC<SpaceInvadersProps> = ({
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const sectionRef = useRef<HTMLElement>(null);
     const alienRef = useRef<SVGSVGElement>(null);
-    const arrivedRef = useRef(false);
-    const [arrived, setArrived] = useState(false);
+    const arrivedRef = useRef(!onClose);
+    const [arrived, setArrived] = useState(!onClose);
     const [closing, setClosing] = useState(false);
     const [ufoPoints, setUfoPoints] = useState<{
         x: number;
@@ -166,22 +168,97 @@ const SpaceInvaders: React.FC<SpaceInvadersProps> = ({
         setClosing(true);
     }, [clearInput]);
 
-    const start = async () => {
-        audioRef.current ??= createArcadeAudio();
-        audioRef.current?.setMuted(muted);
-        await audioRef.current?.start();
+    const startingRef = useRef(false);
+    // Enter and the controls hand focus back to the game.
+    const focusGame = useCallback(() => {
+        canvasRef.current?.focus({ preventScroll: true });
+    }, []);
+    useEffect(() => {
+        if (onClose) return;
+        // The subdomain page only hosts the game: focus always returns to it
+        // (background clicks, Tab, buttons), except inside the notice dialog.
+        let timer = 0;
+        const keep = () => {
+            clearTimeout(timer);
+            timer = window.setTimeout(() => {
+                const active = document.activeElement;
+                if (
+                    active === sectionRef.current ||
+                    active === canvasRef.current ||
+                    active?.closest("dialog")
+                )
+                    return;
+                focusGame();
+            });
+        };
+        const focusOut = (e: FocusEvent) => {
+            if (!e.relatedTarget) keep();
+        };
+        document.addEventListener("focusin", keep);
+        document.addEventListener("focusout", focusOut);
+        return () => {
+            clearTimeout(timer);
+            document.removeEventListener("focusin", keep);
+            document.removeEventListener("focusout", focusOut);
+        };
+    }, [onClose, focusGame]);
+    const standaloneRef = useRef(!onClose);
+    // Enter pauses and resumes a running game.
+    const pausedRef = useRef(false);
+    const [paused, setPaused] = useState(false);
+    // Keys reach the game only from the field or the section itself, not from a button or outside.
+    const [focused, setFocused] = useState(false);
+    const focusedRef = useRef(false);
+    const setFocus = (value: boolean) => {
         if (closingRef.current) return;
-        if (startedRef.current) gameRef.current = newGame();
-        clearInput();
-        startedRef.current = true;
-        setStarted(true);
-        setHud({ score: 0, lives: 3, wave: 1, over: false });
-        canvasRef.current?.focus();
+        focusedRef.current = value;
+        setFocused(value);
     };
+    // A tap focuses the section before its click lands, so the click reads the state from pointerdown.
+    const focusedAtPressRef = useRef(false);
+    const setPause = useCallback(
+        (value: boolean) => {
+            pausedRef.current = value;
+            setPaused(value);
+            clearInput();
+        },
+        [clearInput]
+    );
+    const noticeRef = useRef<HTMLDialogElement>(null);
+    const start = async () => {
+        // Enter and a tap can both arrive while the audio still downloads.
+        if (startingRef.current) return;
+        startingRef.current = true;
+        try {
+            audioRef.current ??= createArcadeAudio();
+            audioRef.current?.setMuted(muted);
+            await audioRef.current?.start();
+            if (closingRef.current) return;
+            if (startedRef.current) gameRef.current = newGame();
+            setPause(false);
+            startedRef.current = true;
+            setStarted(true);
+            setHud({ score: 0, lives: 3, wave: 1, over: false });
+            canvasRef.current?.focus();
+        } finally {
+            startingRef.current = false;
+        }
+    };
+    // Lets the window key handler start the game without re-subscribing each render.
+    const startRef = useRef(start);
+    useLayoutEffect(() => {
+        startRef.current = start;
+    });
 
     // The same transition runs in both directions, keeping the alien attached to the page.
     useLayoutEffect(() => {
         const section = sectionRef.current!;
+        // The subdomain page has no portfolio to fly in from or scroll back to.
+        if (!onClose || !origin || !openingScroll) {
+            section.classList.add("is-expanded");
+            section.focus({ preventScroll: true });
+            return;
+        }
         const alien = alienRef.current!;
         section
             .querySelector<HTMLButtonElement>(".arcade-exit")
@@ -399,9 +476,8 @@ const SpaceInvaders: React.FC<SpaceInvadersProps> = ({
                 }
                 reveal.cancel();
                 section.classList.add("is-expanded");
-                section
-                    .querySelector<HTMLButtonElement>(".arcade-exit")
-                    ?.focus({ preventScroll: true });
+                // The field, not a button, takes focus so Enter starts the game.
+                canvasRef.current?.focus({ preventScroll: true });
                 arrivedRef.current = true;
                 setArrived(true);
             })
@@ -434,15 +510,32 @@ const SpaceInvaders: React.FC<SpaceInvadersProps> = ({
                 setInput(action, `key:${e.code}`, false);
                 return;
             }
+            const enter =
+                e.type === "keydown" &&
+                !e.repeat &&
+                (e.code === "Enter" || e.code === "NumpadEnter");
             if (!sectionRef.current?.contains(e.target as Node)) return;
             if (e.key === "Escape" && e.type === "keydown") {
-                requestClose();
+                if (onClose) requestClose();
+                return;
+            }
+            if (
+                enter &&
+                !(e.target instanceof HTMLButtonElement) &&
+                !(e.target instanceof HTMLAnchorElement)
+            ) {
+                e.preventDefault();
+                if (!startedRef.current || gameRef.current!.over) {
+                    // Not while the portfolio alien is still flying in.
+                    if (arrivedRef.current) void startRef.current();
+                } else setPause(!pausedRef.current);
                 return;
             }
             if (!action) return;
             if (
                 !startedRef.current ||
                 gameRef.current!.over ||
+                pausedRef.current ||
                 e.target instanceof HTMLButtonElement
             )
                 return;
@@ -459,7 +552,7 @@ const SpaceInvaders: React.FC<SpaceInvadersProps> = ({
             window.removeEventListener("blur", clearInput);
             document.removeEventListener("visibilitychange", clearInput);
         };
-    }, [requestClose, clearInput, setInput]);
+    }, [onClose, requestClose, clearInput, setInput, setPause]);
 
     // iOS shows its magnifier on a long press even with user-select: none; cancelling touchstart stops it.
     useEffect(() => {
@@ -504,6 +597,7 @@ const SpaceInvaders: React.FC<SpaceInvadersProps> = ({
             if (
                 startedRef.current &&
                 !gameRef.current!.over &&
+                !pausedRef.current &&
                 !closingRef.current &&
                 !document.hidden &&
                 sectionRef.current?.contains(document.activeElement)
@@ -523,6 +617,7 @@ const SpaceInvaders: React.FC<SpaceInvadersProps> = ({
             audioRef.current?.sync(
                 s.sound,
                 startedRef.current &&
+                    !pausedRef.current &&
                     !closingRef.current &&
                     !document.hidden &&
                     sectionRef.current.contains(document.activeElement) &&
@@ -540,8 +635,9 @@ const SpaceInvaders: React.FC<SpaceInvadersProps> = ({
             drawnArrived = arrivedRef.current;
             drawnClosing = closingRef.current;
             const points = s.ufoPoints;
-            // The title screen ends on the ground line; mobile compositing can leak that edge row while animating.
-            const groundHidden = !startedRef.current || s.over;
+            // The attract screen ends on the ground line; mobile compositing can leak that edge row.
+            // Elsewhere the ROM's screens keep the line.
+            const groundHidden = !startedRef.current && standaloneRef.current;
             for (let x = 0; x < W; x++)
                 for (let y = FIELD_TOP; y < FIELD_BOTTOM; y++) {
                     const scorePixel =
@@ -575,8 +671,6 @@ const SpaceInvaders: React.FC<SpaceInvadersProps> = ({
                         inv.y
                     );
                 }
-                ctx.fillStyle = pixelColor(48, 216);
-                drawSprite(ctx, PLAYER, 16, 216);
             }
             const returning = returningInvaderRef.current;
             if (closingRef.current && returning?.alive && !s.over) {
@@ -649,372 +743,514 @@ const SpaceInvaders: React.FC<SpaceInvadersProps> = ({
         },
     });
 
+    // Same states as the Enter hint: the opening keeps it, out of focus asks for a tap first.
+    const tapHint = !(focused || !arrived)
+        ? "Tap to focus"
+        : hud.over
+          ? "Tap to play again"
+          : !started
+            ? "Tap to start"
+            : "";
+
+    const exitIcon = (
+        <svg viewBox="0 0 16 16" aria-hidden="true">
+            <path
+                d="m3.5 3.5 9 9m0-9-9 9"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.25"
+                strokeLinecap="round"
+            />
+        </svg>
+    );
+
     return (
-        <section
-            ref={sectionRef}
-            tabIndex={-1}
-            aria-labelledby="invaders-title"
-            onBlur={e => {
-                if (!e.currentTarget.contains(e.relatedTarget)) clearInput();
-            }}
-            className="arcade-section"
-        >
-            <div className="arcade-clip">
-                <div className="arcade-panel">
-                    <div className="arcade-cabinet">
-                        <header className="arcade-marquee">
-                            <h2 id="invaders-title" className="sr-only">
-                                Arcade
-                            </h2>
-                            <button
-                                onClick={() => {
-                                    setMuted(!muted);
-                                    audioRef.current?.setMuted(!muted);
-                                }}
-                                aria-label={
-                                    muted ? "Unmute sound" : "Mute sound"
-                                }
-                                aria-pressed={muted}
-                                className="arcade-button arcade-sound"
-                            >
-                                {/* Tabler Icons — license in public/licenses/tabler-icons.txt. */}
-                                <svg
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="1.875"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    aria-hidden="true"
+        <>
+            <section
+                ref={sectionRef}
+                tabIndex={-1}
+                aria-labelledby="invaders-title"
+                // Closing parks focus on Close; setFocus keeps the state it had before.
+                onFocus={e =>
+                    setFocus(
+                        e.target === e.currentTarget ||
+                            e.target === canvasRef.current
+                    )
+                }
+                onBlur={e => {
+                    if (e.currentTarget.contains(e.relatedTarget)) return;
+                    clearInput();
+                    setFocus(false);
+                }}
+                onPointerDown={() => {
+                    focusedAtPressRef.current = focusedRef.current;
+                }}
+                // A click anywhere on the cabinet, except buttons and links, focuses the game.
+                // On touch screens, which have no Enter key, a tap in focus also starts it.
+                onClick={e => {
+                    if (
+                        closingRef.current ||
+                        (e.target as Element).closest("button, a")
+                    )
+                        return;
+                    if (
+                        focusedAtPressRef.current &&
+                        arrived &&
+                        (!started || hud.over) &&
+                        (e.nativeEvent as PointerEvent).pointerType === "touch"
+                    )
+                        void start();
+                    else focusGame();
+                }}
+                className="arcade-section"
+            >
+                <div className="arcade-clip">
+                    <div className="arcade-panel">
+                        <div className="arcade-cabinet">
+                            <header className="arcade-marquee">
+                                <h2 id="invaders-title" className="sr-only">
+                                    Arcade
+                                </h2>
+                                <button
+                                    // Sound and Close never take focus from a click, so it stays in or out of the game.
+                                    onMouseDown={e => e.preventDefault()}
+                                    onClick={() => {
+                                        setMuted(!muted);
+                                        audioRef.current?.setMuted(!muted);
+                                    }}
+                                    aria-label={
+                                        muted ? "Unmute sound" : "Mute sound"
+                                    }
+                                    aria-pressed={muted}
+                                    className="arcade-button arcade-sound"
                                 >
-                                    {muted ? (
-                                        <>
-                                            <path d="M15 8a5 5 0 0 1 1.912 4.934m-1.377 2.602a5 5 0 0 1 -.535 .464" />
-                                            <path d="M17.7 5a9 9 0 0 1 2.362 11.086m-1.676 2.299a9 9 0 0 1 -.686 .615" />
-                                            <path d="M9.069 5.054l.431 -.554a.8 .8 0 0 1 1.5 .5v2m0 4v8a.8 .8 0 0 1 -1.5 .5l-3.5 -4.5h-2a1 1 0 0 1 -1 -1v-4a1 1 0 0 1 1 -1h2l1.294 -1.664" />
-                                            <path d="M3 3l18 18" />
-                                        </>
-                                    ) : (
-                                        <>
-                                            <path d="M15 8a5 5 0 0 1 0 8" />
-                                            <path d="M17.7 5a9 9 0 0 1 0 14" />
-                                            <path d="M6 15h-2a1 1 0 0 1 -1 -1v-4a1 1 0 0 1 1 -1h2l3.5 -4.5a.8 .8 0 0 1 1.5 .5v14a.8 .8 0 0 1 -1.5 .5l-3.5 -4.5" />
-                                        </>
-                                    )}
-                                </svg>
-                            </button>
-                            <button
-                                onClick={requestClose}
-                                aria-label="Close game"
-                                className="arcade-button arcade-exit"
-                            >
-                                <svg viewBox="0 0 16 16" aria-hidden="true">
-                                    <path
-                                        d="m3.5 3.5 9 9m0-9-9 9"
+                                    {/* Tabler Icons — license in public/licenses/tabler-icons.txt. */}
+                                    <svg
+                                        viewBox="0 0 24 24"
                                         fill="none"
                                         stroke="currentColor"
-                                        strokeWidth="1.25"
+                                        strokeWidth="1.875"
                                         strokeLinecap="round"
-                                    />
-                                </svg>
-                            </button>
-                        </header>
+                                        strokeLinejoin="round"
+                                        aria-hidden="true"
+                                    >
+                                        {muted ? (
+                                            <>
+                                                <path d="M15 8a5 5 0 0 1 1.912 4.934m-1.377 2.602a5 5 0 0 1 -.535 .464" />
+                                                <path d="M17.7 5a9 9 0 0 1 2.362 11.086m-1.676 2.299a9 9 0 0 1 -.686 .615" />
+                                                <path d="M9.069 5.054l.431 -.554a.8 .8 0 0 1 1.5 .5v2m0 4v8a.8 .8 0 0 1 -1.5 .5l-3.5 -4.5h-2a1 1 0 0 1 -1 -1v-4a1 1 0 0 1 1 -1h2l1.294 -1.664" />
+                                                <path d="M3 3l18 18" />
+                                            </>
+                                        ) : (
+                                            <>
+                                                <path d="M15 8a5 5 0 0 1 0 8" />
+                                                <path d="M17.7 5a9 9 0 0 1 0 14" />
+                                                <path d="M6 15h-2a1 1 0 0 1 -1 -1v-4a1 1 0 0 1 1 -1h2l3.5 -4.5a.8 .8 0 0 1 1.5 .5v14a.8 .8 0 0 1 -1.5 .5l-3.5 -4.5" />
+                                            </>
+                                        )}
+                                    </svg>
+                                </button>
+                                {onClose && (
+                                    <button
+                                        onMouseDown={e => e.preventDefault()}
+                                        onClick={requestClose}
+                                        aria-label="Close game"
+                                        className="arcade-button arcade-exit"
+                                    >
+                                        {exitIcon}
+                                    </button>
+                                )}
+                            </header>
 
-                        <div className="arcade-body">
-                            <div className="arcade-screen">
-                                <div className="arcade-game">
-                                    <div className="arcade-scoreboard">
-                                        <div>
-                                            <span className="arcade-label">
-                                                Score&lt;1&gt;
-                                            </span>
-                                            <b>
-                                                {String(hud.score).padStart(
-                                                    4,
-                                                    "0"
-                                                )}
-                                            </b>
-                                        </div>
-                                        <div className="text-(--arcade-accent)">
-                                            <span className="arcade-label">
-                                                Hi-score
-                                            </span>
-                                            <b>
-                                                {String(best).padStart(4, "0")}
-                                            </b>
-                                        </div>
-                                        <div>
-                                            <span className="arcade-label">
-                                                Score&lt;2&gt;
-                                            </span>
-                                            <b>{""}</b>
-                                        </div>
-                                    </div>
-                                    <div className="arcade-playfield">
-                                        <canvas
-                                            ref={canvasRef}
-                                            width={W}
-                                            height={FIELD_BOTTOM - FIELD_TOP}
-                                            tabIndex={
-                                                started && !hud.over && !closing
-                                                    ? 0
-                                                    : -1
-                                            }
-                                            aria-label="Game field. Left and right arrows to move, Space to fire."
-                                            className="block w-full [image-rendering:pixelated]"
-                                        />
-                                        {ufoPoints && (
-                                            <svg
-                                                className="arcade-ufo-points"
-                                                width={36 / PIXEL_ASPECT}
-                                                height="12"
-                                                viewBox="0 0 24 8"
-                                                preserveAspectRatio="none"
-                                                shapeRendering="crispEdges"
-                                                role="img"
-                                                aria-label={`${ufoPoints.points} points`}
-                                                style={{
-                                                    left: `clamp(0px, ${(ufoPoints.x / W) * 100}%, calc(100% - ${18 / 7}em))`,
-                                                    top: `${((ufoPoints.y - FIELD_TOP) / (FIELD_BOTTOM - FIELD_TOP)) * 100}%`,
-                                                }}
-                                            >
-                                                {String(ufoPoints.points)
-                                                    .padStart(3, " ")
-                                                    .split("")
-                                                    .flatMap((digit, i) =>
-                                                        SCORE_GLYPHS[
-                                                            digit
-                                                        ].flatMap((row, y) =>
-                                                            [...row].map(
-                                                                (pixel, x) =>
-                                                                    pixel ===
-                                                                    "X" ? (
-                                                                        <rect
-                                                                            key={`${i}-${x}-${y}`}
-                                                                            x={
-                                                                                i *
-                                                                                    8 +
-                                                                                x
-                                                                            }
-                                                                            y={
-                                                                                y
-                                                                            }
-                                                                            width="1"
-                                                                            height="1"
-                                                                            fill="currentColor"
-                                                                        />
-                                                                    ) : null
-                                                            )
-                                                        )
+                            <div className="arcade-body">
+                                <div className="arcade-screen">
+                                    <div className="arcade-game">
+                                        <div className="arcade-scoreboard">
+                                            <div>
+                                                <span className="arcade-label">
+                                                    Score&lt;1&gt;
+                                                </span>
+                                                <b>
+                                                    {String(hud.score).padStart(
+                                                        4,
+                                                        "0"
                                                     )}
-                                            </svg>
-                                        )}
-                                        {(!started || hud.over) && (
-                                            <div
-                                                className={`arcade-title-screen ${!started ? "arcade-ready" : ""}`}
-                                            >
-                                                {hud.over && (
-                                                    <h3 className="arcade-title">
-                                                        Game over
-                                                    </h3>
-                                                )}
-
-                                                {hud.over ? (
-                                                    <p className="font-arcade text-base">
-                                                        Score{" "}
-                                                        {String(
-                                                            hud.score
-                                                        ).padStart(4, "0")}
-                                                    </p>
-                                                ) : (
-                                                    <p className="arcade-instructions">
-                                                        Clear the invaders
-                                                        before they land.
-                                                    </p>
-                                                )}
-                                                <button
-                                                    onClick={start}
-                                                    className="arcade-button arcade-start"
-                                                    disabled={
-                                                        !arrived || closing
-                                                    }
-                                                >
-                                                    {hud.over
-                                                        ? "Play again"
-                                                        : "Start"}
-                                                </button>
+                                                </b>
                                             </div>
-                                        )}
-                                    </div>
-                                    <div className="arcade-status">
-                                        <span
-                                            className="arcade-lives"
-                                            role="img"
-                                            aria-label={`${hud.lives} lives remaining`}
-                                        >
-                                            <span className="arcade-life-count">
-                                                {hud.lives}
-                                            </span>
-                                            {Array.from(
-                                                {
-                                                    length: Math.max(
-                                                        0,
-                                                        hud.lives - 1
-                                                    ),
-                                                },
-                                                (_, life) => (
-                                                    <svg
-                                                        key={life}
-                                                        viewBox="0 0 16 8"
-                                                        preserveAspectRatio="none"
-                                                        aria-hidden="true"
-                                                        className="text-(--arcade-player)"
-                                                        shapeRendering="crispEdges"
-                                                    >
-                                                        {PLAYER.flatMap(
-                                                            (row, y) =>
-                                                                [...row].map(
-                                                                    (
-                                                                        pixel,
-                                                                        x
-                                                                    ) =>
-                                                                        pixel ===
-                                                                        "X" ? (
-                                                                            <rect
-                                                                                key={`${x}-${y}`}
-                                                                                x={
-                                                                                    x
-                                                                                }
-                                                                                y={
-                                                                                    y
-                                                                                }
-                                                                                width="1"
-                                                                                height="1"
-                                                                                fill="currentColor"
-                                                                            />
-                                                                        ) : null
-                                                                )
+                                            <div className="text-(--arcade-accent)">
+                                                <span className="arcade-label">
+                                                    Hi-score
+                                                </span>
+                                                <b>
+                                                    {String(best).padStart(
+                                                        4,
+                                                        "0"
+                                                    )}
+                                                </b>
+                                            </div>
+                                            <div>
+                                                <span className="arcade-label">
+                                                    Score&lt;2&gt;
+                                                </span>
+                                                <b>{""}</b>
+                                            </div>
+                                        </div>
+                                        <div className="arcade-playfield">
+                                            <canvas
+                                                ref={canvasRef}
+                                                width={W}
+                                                height={
+                                                    FIELD_BOTTOM - FIELD_TOP
+                                                }
+                                                // Tab reaches the game in every state; Enter starts it from here.
+                                                tabIndex={closing ? -1 : 0}
+                                                aria-label="Game field. Enter to start or pause, left and right arrows to move, Space to fire."
+                                                className="block w-full [image-rendering:pixelated]"
+                                            />
+                                            {ufoPoints && (
+                                                <svg
+                                                    className="arcade-ufo-points"
+                                                    width={36 / PIXEL_ASPECT}
+                                                    height="12"
+                                                    viewBox="0 0 24 8"
+                                                    preserveAspectRatio="none"
+                                                    shapeRendering="crispEdges"
+                                                    role="img"
+                                                    aria-label={`${ufoPoints.points} points`}
+                                                    style={{
+                                                        left: `clamp(0px, ${(ufoPoints.x / W) * 100}%, calc(100% - ${18 / 7}em))`,
+                                                        top: `${((ufoPoints.y - FIELD_TOP) / (FIELD_BOTTOM - FIELD_TOP)) * 100}%`,
+                                                    }}
+                                                >
+                                                    {String(ufoPoints.points)
+                                                        .padStart(3, " ")
+                                                        .split("")
+                                                        .flatMap((digit, i) =>
+                                                            SCORE_GLYPHS[
+                                                                digit
+                                                            ].flatMap(
+                                                                (row, y) =>
+                                                                    [
+                                                                        ...row,
+                                                                    ].map(
+                                                                        (
+                                                                            pixel,
+                                                                            x
+                                                                        ) =>
+                                                                            pixel ===
+                                                                            "X" ? (
+                                                                                <rect
+                                                                                    key={`${i}-${x}-${y}`}
+                                                                                    x={
+                                                                                        i *
+                                                                                            8 +
+                                                                                        x
+                                                                                    }
+                                                                                    y={
+                                                                                        y
+                                                                                    }
+                                                                                    width="1"
+                                                                                    height="1"
+                                                                                    fill="currentColor"
+                                                                                />
+                                                                            ) : null
+                                                                    )
+                                                            )
                                                         )}
-                                                    </svg>
+                                                </svg>
+                                            )}
+                                            {!onClose && !started ? (
+                                                <AttractScreen />
+                                            ) : (
+                                                hud.over && (
+                                                    // ROM layout: GAME OVER typed over the frozen playfield, no panel.
+                                                    <GameOverText />
                                                 )
                                             )}
-                                        </span>
-                                        <span
-                                            role="status"
-                                            aria-label={
-                                                hud.over
-                                                    ? "Game over"
-                                                    : started
-                                                      ? "Playing"
-                                                      : "Ready"
-                                            }
-                                        >
-                                            Credit 00
-                                        </span>
+                                        </div>
+                                        <div className="arcade-status">
+                                            <span
+                                                className={
+                                                    !onClose && !started
+                                                        ? "arcade-lives invisible"
+                                                        : "arcade-lives"
+                                                }
+                                                role="img"
+                                                aria-label={`${hud.lives} lives remaining`}
+                                            >
+                                                <span className="arcade-life-count">
+                                                    {hud.lives}
+                                                </span>
+                                                {Array.from(
+                                                    {
+                                                        length: Math.max(
+                                                            0,
+                                                            hud.lives - 1
+                                                        ),
+                                                    },
+                                                    (_, life) => (
+                                                        <svg
+                                                            key={life}
+                                                            viewBox="0 0 16 8"
+                                                            preserveAspectRatio="none"
+                                                            aria-hidden="true"
+                                                            className="text-(--arcade-player)"
+                                                            shapeRendering="crispEdges"
+                                                        >
+                                                            {PLAYER.flatMap(
+                                                                (row, y) =>
+                                                                    [
+                                                                        ...row,
+                                                                    ].map(
+                                                                        (
+                                                                            pixel,
+                                                                            x
+                                                                        ) =>
+                                                                            pixel ===
+                                                                            "X" ? (
+                                                                                <rect
+                                                                                    key={`${x}-${y}`}
+                                                                                    x={
+                                                                                        x
+                                                                                    }
+                                                                                    y={
+                                                                                        y
+                                                                                    }
+                                                                                    width="1"
+                                                                                    height="1"
+                                                                                    fill="currentColor"
+                                                                                />
+                                                                            ) : null
+                                                                    )
+                                                            )}
+                                                        </svg>
+                                                    )
+                                                )}
+                                            </span>
+                                            <span
+                                                role="status"
+                                                aria-label={
+                                                    hud.over
+                                                        ? "Game over"
+                                                        : started
+                                                          ? "Playing"
+                                                          : "Ready"
+                                                }
+                                            >
+                                                Credit 00
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <aside
-                                className="arcade-controls"
-                                aria-label="Game instructions"
-                            >
-                                <div className="arcade-keyboard-hint">
-                                    <span>
-                                        <kbd aria-label="Left arrow">
-                                            <svg
-                                                width="16"
-                                                height="16"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                strokeWidth="2"
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                aria-hidden="true"
-                                            >
-                                                <path d="M19 12H5m7-7-7 7 7 7" />
-                                            </svg>
-                                        </kbd>
-                                        <kbd aria-label="Right arrow">
-                                            <svg
-                                                width="16"
-                                                height="16"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                strokeWidth="2"
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                aria-hidden="true"
-                                            >
-                                                <path d="M5 12h14m-7-7 7 7-7 7" />
-                                            </svg>
-                                        </kbd>{" "}
-                                        Move
-                                    </span>
-                                    <span>
-                                        <kbd>Space</kbd> Fire
-                                    </span>
-                                </div>
-                                <div className="arcade-touch-controls">
-                                    <button
-                                        disabled={
-                                            !started || hud.over || closing
+                                <aside
+                                    className="arcade-controls"
+                                    aria-label="Game instructions"
+                                >
+                                    <div className="arcade-keyboard-hint">
+                                        <span>
+                                            <kbd aria-label="Left arrow">
+                                                <svg
+                                                    width="16"
+                                                    height="16"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeWidth="2"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    aria-hidden="true"
+                                                >
+                                                    <path d="M19 12H5m7-7-7 7 7 7" />
+                                                </svg>
+                                            </kbd>
+                                            <kbd aria-label="Right arrow">
+                                                <svg
+                                                    width="16"
+                                                    height="16"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeWidth="2"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    aria-hidden="true"
+                                                >
+                                                    <path d="M5 12h14m-7-7 7 7-7 7" />
+                                                </svg>
+                                            </kbd>
+                                            <kbd>A</kbd>
+                                            <kbd>D</kbd> Move
+                                        </span>
+                                        <span>
+                                            <kbd aria-label="Up arrow">
+                                                <svg
+                                                    width="16"
+                                                    height="16"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeWidth="2"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    aria-hidden="true"
+                                                >
+                                                    <path d="M12 19V5m-7 7 7-7 7 7" />
+                                                </svg>
+                                            </kbd>
+                                            <kbd>Space</kbd>
+                                            <kbd>W</kbd> Fire
+                                        </span>
+                                        <span className="arcade-start-hint">
+                                            {/* The opening accepts no input yet, so it keeps the Enter hint. */}
+                                            {focused || !arrived ? (
+                                                <>
+                                                    <kbd>Enter</kbd>{" "}
+                                                    {hud.over
+                                                        ? "Play again"
+                                                        : !started
+                                                          ? "Start"
+                                                          : paused
+                                                            ? "Resume"
+                                                            : "Pause"}
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <kbd>Click</kbd> Focus
+                                                </>
+                                            )}
+                                        </span>
+                                    </div>
+                                    <p
+                                        className={
+                                            tapHint
+                                                ? "arcade-start-hint arcade-tap-hint"
+                                                : "arcade-start-hint arcade-tap-hint invisible"
                                         }
-                                        aria-label="Move left"
-                                        className="arcade-button"
-                                        {...hold("left")}
                                     >
-                                        <svg
-                                            viewBox="0 0 16 16"
-                                            aria-hidden="true"
-                                            shapeRendering="crispEdges"
+                                        {tapHint || "Tap to start"}
+                                    </p>
+                                    <div className="arcade-touch-controls">
+                                        <button
+                                            disabled={
+                                                !started || hud.over || closing
+                                            }
+                                            aria-label="Move left"
+                                            className="arcade-button"
+                                            {...hold("left")}
                                         >
-                                            <path
-                                                d="M8 2H6v2H4v2H2v4h2v2h2v2h2v-4h6V6H8z"
-                                                fill="currentColor"
-                                            />
-                                        </svg>
-                                    </button>
-                                    <button
-                                        disabled={
-                                            !started || hud.over || closing
-                                        }
-                                        aria-label="Move right"
-                                        className="arcade-button"
-                                        {...hold("right")}
-                                    >
-                                        <svg
-                                            viewBox="0 0 16 16"
-                                            aria-hidden="true"
-                                            shapeRendering="crispEdges"
+                                            <svg
+                                                viewBox="0 0 16 16"
+                                                aria-hidden="true"
+                                                shapeRendering="crispEdges"
+                                            >
+                                                <path
+                                                    d="M8 2H6v2H4v2H2v4h2v2h2v2h2v-4h6V6H8z"
+                                                    fill="currentColor"
+                                                />
+                                            </svg>
+                                        </button>
+                                        <button
+                                            disabled={
+                                                !started || hud.over || closing
+                                            }
+                                            aria-label="Move right"
+                                            className="arcade-button"
+                                            {...hold("right")}
                                         >
-                                            <path
-                                                d="M8 2h2v2h2v2h2v4h-2v2h-2v2H8v-4H2V6h6z"
-                                                fill="currentColor"
-                                            />
-                                        </svg>
-                                    </button>
-                                    <button
-                                        disabled={
-                                            !started || hud.over || closing
-                                        }
-                                        className="arcade-button arcade-fire"
-                                        {...hold("fire")}
-                                    >
-                                        Fire
-                                    </button>
-                                </div>
-                            </aside>
+                                            <svg
+                                                viewBox="0 0 16 16"
+                                                aria-hidden="true"
+                                                shapeRendering="crispEdges"
+                                            >
+                                                <path
+                                                    d="M8 2h2v2h2v2h2v4h-2v2h-2v2H8v-4H2V6h6z"
+                                                    fill="currentColor"
+                                                />
+                                            </svg>
+                                        </button>
+                                        <button
+                                            disabled={
+                                                !started || hud.over || closing
+                                            }
+                                            className="arcade-button arcade-fire"
+                                            {...hold("fire")}
+                                        >
+                                            <span className="arcade-stretch">
+                                                Fire
+                                            </span>
+                                        </button>
+                                    </div>
+                                    {!onClose && (
+                                        <p className="arcade-credit">
+                                            Space Invaders © 1978 Taito
+                                            Corporation · Implemented by{" "}
+                                            <a href="https://dikym.me/">Diky</a>{" "}
+                                            ·{" "}
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    noticeRef.current?.showModal();
+                                                    // Enter then closes the notice instead of following its first link.
+                                                    noticeRef.current
+                                                        ?.querySelector<HTMLButtonElement>(
+                                                            "form button"
+                                                        )
+                                                        ?.focus();
+                                                }}
+                                            >
+                                                Notice
+                                            </button>
+                                        </p>
+                                    )}
+                                </aside>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            {(!arrived || closing) && (
-                <CrabSprite ref={alienRef} className="arcade-arriving-alien" />
+                {(!arrived || closing) && (
+                    <CrabSprite
+                        ref={alienRef}
+                        className="arcade-arriving-alien"
+                    />
+                )}
+            </section>
+            {!onClose && (
+                // Outside the section, so the game pauses and ignores keys while it is open.
+                <dialog
+                    ref={noticeRef}
+                    className="arcade-notice"
+                    aria-labelledby="arcade-notice-title"
+                    onClose={focusGame}
+                    onClick={e => {
+                        if (e.target === e.currentTarget)
+                            e.currentTarget.close();
+                    }}
+                >
+                    <h2 id="arcade-notice-title">About this page</h2>
+                    <p>
+                        Space Invaders is © 1978 Taito Corporation. The game,
+                        its name, characters and artwork belong to Taito.
+                    </p>
+                    <p>
+                        This page is a non-commercial fan implementation by{" "}
+                        <a href="https://dikym.me/">Diky</a>. It runs the
+                        original 1978 arcade program in a browser-based Intel
+                        8080 emulator. It is not affiliated with or endorsed by
+                        Taito, and no ownership of the game is claimed.
+                    </p>
+                    <p>
+                        Third-party licenses:{" "}
+                        <a href="/licenses/8080js.txt">8080js</a>,{" "}
+                        <a href="/licenses/space-invaders-audio.txt">sounds</a>,{" "}
+                        <a href="/licenses/tabler-icons.txt">icons</a>.
+                    </p>
+                    <form method="dialog">
+                        <button>Close</button>
+                    </form>
+                </dialog>
             )}
-        </section>
+        </>
     );
 };
 

@@ -1,6 +1,26 @@
 // Run Vite and Chromium with --remote-debugging-port=9222, then:
 // node tests/arcade.check.mjs http://127.0.0.1:5173
 import assert from "node:assert/strict";
+
+// Arcade-font text must keep the ROM's 7/6 pixel aspect; descriptions and shortcuts are site UI.
+const STRETCH_AUDIT = `(() => {
+    const section = document.querySelector('.arcade-section');
+    const walker = document.createTreeWalker(section, NodeFilter.SHOW_TEXT);
+    const bad = [];
+    for (let node; (node = walker.nextNode()); ) {
+        const el = node.parentElement;
+        if (!node.textContent.trim() || !el.getClientRects().length) continue;
+        if (el.closest('.arcade-keyboard-hint, .sr-only')) continue;
+        if (!getComputedStyle(el).fontFamily.includes('Space Invaders')) continue;
+        let stretched = false;
+        for (let e = el; e && e !== section; e = e.parentElement) {
+            const y = Number(getComputedStyle(e).scale.split(' ')[1]);
+            if (Math.abs(Math.abs(y) - 7 / 6) < 0.001) { stretched = true; break; }
+        }
+        if (!stretched) bad.push(node.textContent.trim());
+    }
+    return bad;
+})()`;
 import { writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 
@@ -57,6 +77,18 @@ const click = async selector => {
         `document.querySelector(${JSON.stringify(selector)}).click()`
     );
     await evaluate("if (window.tickArcade) tickArcade(3)");
+};
+const mouseClick = async selector => {
+    const point = await evaluate(
+        `(() => { const r = document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })()`
+    );
+    for (const type of ["mousePressed", "mouseReleased"])
+        await send("Input.dispatchMouseEvent", {
+            type,
+            ...point,
+            button: "left",
+            clickCount: 1,
+        });
 };
 const scrollStyles = () =>
     evaluate(`['overflow', 'overflowAnchor', 'touchAction', 'scrollbarGutter']
@@ -435,7 +467,7 @@ try {
     const mobileAlienSize = await footerAlienSize();
     await click(".arcade-trigger");
     await waitFor(
-        "document.querySelector('.arcade-start')?.disabled === false"
+        "!!document.querySelector('.arcade-section.is-expanded') && !document.querySelector('.arcade-arriving-alien')"
     );
     assert.equal(
         await evaluate(
@@ -552,7 +584,7 @@ try {
         Buffer.from(opening.data, "base64")
     );
     await waitFor(
-        'document.querySelector(".arcade-start")?.disabled === false'
+        '!!document.querySelector(".arcade-section.is-expanded") && !document.querySelector(".arcade-arriving-alien")'
     );
     await checkOpeningPosition();
     const arcadeCenter = await evaluate(`(() => {
@@ -700,13 +732,13 @@ try {
         createHash("sha256")
             .update(Buffer.from(readyFrame.split(",")[1], "base64"))
             .digest("hex"),
-        "cfcea2a5caf2686a9a8ce7dae1d2f5ade9ec2d3945801f32aec77be2c8b44afc",
+        "e1d7b3c24b52d8bc9ef10914454960f508522852832e93421977b23c445fb39c",
         "initial canvas PNG matches the native baseline"
     );
     assert.equal(
         await evaluate("arcadeAudioContexts.length"),
         0,
-        "no AudioContext before Start"
+        "no AudioContext before Enter"
     );
     const crtRatio = await evaluate(
         `(() => { const c=document.querySelector('canvas'),r=c.getBoundingClientRect(); return (r.height/c.height)/(r.width/c.width); })()`
@@ -731,14 +763,36 @@ try {
     assert.equal(
         await evaluate('document.querySelector("canvas").toDataURL()'),
         readyFrame,
-        "game must wait for Start"
+        "game must wait for Enter"
     );
     assert.equal(
         await evaluate(
-            'document.querySelector(".arcade-start").matches(":focus-visible")'
+            'document.activeElement === document.querySelector("canvas")'
         ),
-        false,
-        "Start has no automatic focus highlight"
+        true,
+        "arrival focuses the game so Enter starts it"
+    );
+    assert.equal(
+        await evaluate('document.querySelector("canvas").tabIndex'),
+        0,
+        "Tab reaches the game before it starts"
+    );
+    await evaluate('document.querySelector(".arcade-sound").focus()');
+    await key("keyDown", "Tab", "Tab");
+    await key("keyUp", "Tab", "Tab");
+    assert.deepEqual(
+        await evaluate(
+            `[document.activeElement.className, getComputedStyle(document.activeElement).outlineStyle]`
+        ),
+        ["arcade-button arcade-exit", "solid"],
+        "Tab moves from sound to Close and outlines it"
+    );
+    await key("keyDown", "Tab", "Tab");
+    await key("keyUp", "Tab", "Tab");
+    assert.equal(
+        await evaluate("document.activeElement.tagName"),
+        "CANVAS",
+        "Tab moves from Close into the game"
     );
 
     const screenshot = await send("Page.captureScreenshot", { format: "png" });
@@ -764,21 +818,11 @@ try {
     await evaluate(
         'document.documentElement.classList.remove("dark"); tickArcade(1)'
     );
-    await key("keyDown", "Tab", "Tab");
-    await key("keyUp", "Tab", "Tab");
-    assert.equal(
-        await evaluate("document.activeElement.textContent"),
-        "Start",
-        "Start stays reachable by keyboard"
-    );
-    assert.equal(
-        await evaluate("getComputedStyle(document.activeElement).outlineStyle"),
-        "none",
-        "Start has no outline when reached with Tab"
-    );
     await key("keyDown", "Enter", "Enter");
     await key("keyUp", "Enter", "Enter");
-    await waitFor('!document.querySelector(".arcade-start")');
+    await waitFor(
+        '!!document.querySelector(".arcade-status [aria-label=Playing]")'
+    );
     await waitFor(`arcadeAudioContexts[0]?.state === 'running'`);
     await click(".arcade-sound");
     assert.equal(
@@ -795,6 +839,54 @@ try {
         "false"
     );
     assert.equal(await evaluate("document.activeElement.tagName"), "CANVAS");
+    const enterHint = () =>
+        evaluate(
+            "document.querySelector('.arcade-keyboard-hint .arcade-start-hint').textContent"
+        );
+    await key("keyDown", "Enter", "Enter");
+    await key("keyUp", "Enter", "Enter");
+    assert.equal(await enterHint(), "Enter Resume", "Enter pauses the game");
+    await evaluate("document.activeElement.blur()");
+    await key("keyDown", "Enter", "Enter");
+    await key("keyUp", "Enter", "Enter");
+    assert.equal(
+        await evaluate("document.activeElement === document.body"),
+        true,
+        "Enter outside the game does not take focus back"
+    );
+    assert.equal(
+        await enterHint(),
+        "Click Focus",
+        "out of focus, the hint offers a click instead of Enter"
+    );
+    await mouseClick(".arcade-sound");
+    await mouseClick(".arcade-sound");
+    assert.deepEqual(
+        await evaluate(
+            "[document.activeElement === document.body, document.querySelector('.arcade-sound').getAttribute('aria-pressed')]"
+        ),
+        [true, "false"],
+        "clicking sound mutes and unmutes without taking focus"
+    );
+    assert.equal(
+        await enterHint(),
+        "Click Focus",
+        "clicking sound leaves the game out of focus"
+    );
+    await mouseClick(".arcade-scoreboard");
+    assert.equal(
+        await evaluate("document.activeElement.tagName"),
+        "CANVAS",
+        "a click on the cabinet brings focus back to the game"
+    );
+    assert.equal(
+        await enterHint(),
+        "Enter Resume",
+        "back in focus, the hint offers Enter again"
+    );
+    await key("keyDown", "Enter", "Enter");
+    await key("keyUp", "Enter", "Enter");
+    assert.equal(await enterHint(), "Enter Pause", "Enter resumes the game");
     await setUpGame("window.nativeGame = g;");
     await evaluate("tickArcade(60)");
     await setUpGame("g.elapsed = -1000; window.nativeGame = g;");
@@ -889,7 +981,7 @@ try {
             await evaluate(
                 "getComputedStyle(document.querySelector('.arcade-status [role=status]')).fontSize"
             ),
-            "14px"
+            "16px"
         );
         const sizes = await evaluate(`(() => {
             const points = document.querySelector('.arcade-ufo-points').getBoundingClientRect();
@@ -907,28 +999,99 @@ try {
             Math.abs(sizes.shipHeight - (sizes.fieldHeight * 8) / 208) < 0.02
         );
         assert.ok(Math.abs(sizes.alien - 33 / 28) < 0.01);
-        assert.equal(sizes.livesFont, "14px");
-        const textLayout = await evaluate(`(() => {
-            const frame = document.querySelector('canvas').getBoundingClientRect();
-            const columns = [...document.querySelectorAll('.arcade-scoreboard > div')];
-            return columns.map(column => {
-                const label = column.querySelector('.arcade-label');
-                const score = column.querySelector('b');
-                const a = label.getBoundingClientRect(), b = score.getBoundingClientRect();
-                return {aligned: Math.abs(a.left + a.width / 2 - b.left - b.width / 2) < 0.1,
-                    labelFont: getComputedStyle(label).fontSize, scoreFont: getComputedStyle(score).fontSize,
-                    center: (a.left + a.width / 2 - frame.left) / frame.width};
-            });
-        })()`);
-        for (const [i, column] of textLayout.entries()) {
-            assert.equal(column.aligned, true);
-            assert.equal(column.labelFont, column.scoreFont);
-            assert.equal(column.scoreFont, "14px");
+        assert.equal(sizes.livesFont, "16px");
+        const near = (actual, expected, message) =>
             assert.ok(
-                Math.abs(column.center - [40 / 224, 112 / 224, 184 / 224][i]) <
-                    0.001
+                Math.abs(actual - expected) < 0.5,
+                `${message}: ${actual} vs ${expected}`
+            );
+        const ink = await evaluate(`(() => {
+            const ctx = document.createElement('canvas').getContext('2d');
+            ctx.font = '16px "Space Invaders"';
+            const m = ctx.measureText('C');
+            return {capTop: m.fontBoundingBoxAscent - m.actualBoundingBoxAscent, descent: m.fontBoundingBoxDescent};
+        })()`);
+        near(ink.capTop, 2, "font cap starts 1/8 em below the box top");
+        near(ink.descent, 0, "font baseline sits at the box bottom");
+        const hud = await evaluate(`(() => {
+            const field = document.querySelector('canvas').getBoundingClientRect();
+            const box = selector => document.querySelector(selector).getBoundingClientRect();
+            const ink = selector => { const range = document.createRange(); range.selectNodeContents(document.querySelector(selector)); return range.getBoundingClientRect(); };
+            const digit = ink('.arcade-life-count'), ship = box('.arcade-lives svg');
+            const credit = ink('.arcade-status [role=status]'), label = box('.arcade-label');
+            return {left: field.left, bottom: field.bottom, column: field.width / 224,
+                digit: [digit.left, digit.top, digit.height], ship: [ship.left, ship.top],
+                credit: [credit.left, credit.top, credit.height], label: label.height};
+        })()`);
+        const row = (hud.column * 7) / 6;
+        // ROM rows: line 239, cannons 240–247, text cap 241–247 (docs/space-invaders-1978.md).
+        near(hud.ship[1], hud.bottom, "cannons sit flush under the line");
+        near(
+            hud.digit[1],
+            hud.bottom,
+            "lives digit cell starts under the line"
+        );
+        near(hud.credit[1], hud.bottom, "CREDIT cell starts under the line");
+        near(hud.digit[2], 8 * row, "lives digit cell is 8 game rows");
+        near(hud.credit[2], 8 * row, "CREDIT cell is 8 game rows");
+        near(hud.label, 8 * row, "scoreboard label cell is 8 game rows");
+        // ROM glyph ink starts one column into its cell; the font's starts at its box edge.
+        near(
+            hud.digit[0],
+            hud.left + 9 * hud.column,
+            "lives digit ink at ROM x=9"
+        );
+        near(
+            hud.ship[0],
+            hud.left + 24 * hud.column,
+            "first cannon at ROM x=24"
+        );
+        near(
+            hud.credit[0],
+            hud.left + 137 * hud.column,
+            "CREDIT ink at ROM x=137"
+        );
+        const board = await evaluate(`(() => {
+            const field = document.querySelector('canvas').getBoundingClientRect();
+            const ink = node => { const range = document.createRange(); range.selectNodeContents(node); return range.getBoundingClientRect(); };
+            return {left: field.left, top: field.top, column: field.width / 224,
+                board: document.querySelector('.arcade-scoreboard').getBoundingClientRect().top,
+                labels: [...document.querySelectorAll('.arcade-label')].map(node => { const r = ink(node); return [r.left, r.top]; }),
+                scores: [...document.querySelectorAll('.arcade-scoreboard b')].filter(node => node.textContent).map(node => { const r = ink(node); return [r.left, r.top]; }),
+                fonts: [...document.querySelectorAll('.arcade-label, .arcade-scoreboard b')].map(node => getComputedStyle(node).fontSize)};
+        })()`);
+        const boardRow = (board.column * 7) / 6;
+        // ROM rows 0–31: header cells at y=8 ($241E), scores at y=24 ($271C, $2F1C).
+        near(
+            board.board,
+            board.top - 32 * boardRow,
+            "scoreboard spans ROM rows 0–31"
+        );
+        for (const [i, x] of [8, 80, 152].entries()) {
+            near(
+                board.labels[i][0],
+                board.left + (x + 1) * board.column,
+                `label ${i} ink at ROM x=${x + 1}`
+            );
+            near(
+                board.labels[i][1],
+                board.top - 24 * boardRow,
+                `label ${i} cell at ROM y=8`
             );
         }
+        for (const [i, x] of [24, 88].entries()) {
+            near(
+                board.scores[i][0],
+                board.left + (x + 1) * board.column,
+                `score ${i} ink at ROM x=${x + 1}`
+            );
+            near(
+                board.scores[i][1],
+                board.top - 8 * boardRow,
+                `score ${i} cell at ROM y=24`
+            );
+        }
+        assert.ok(board.fonts.every(size => size === "16px"));
 
         assert.ok(
             await evaluate(`(() => {
@@ -981,6 +1144,13 @@ try {
         ),
         "none"
     );
+    assert.equal(
+        await evaluate(
+            "getComputedStyle(document.querySelector('.arcade-game')).outlineStyle"
+        ),
+        "solid",
+        "a click on the cabinet keeps keys in the game, so the game stays outlined"
+    );
     await evaluate(
         "document.querySelector('canvas').focus({preventScroll:true})"
     );
@@ -1032,16 +1202,21 @@ try {
         "clearing the rack starts wave two"
     );
     assert.equal(
-        await evaluate("!!document.querySelector('.arcade-start')"),
-        false,
+        await evaluate(
+            "!!document.querySelector('.arcade-status [aria-label=Playing]')"
+        ),
+        true,
         "no invented victory screen"
     );
     await setUpGame(
         "g.memory[0x20e7]=0; g.memory[0x21ff]=0; g.memory[0x2015]=0;"
     );
     await evaluate("tickArcade(1)");
-    await waitFor(
-        "document.querySelector('.arcade-start')?.textContent === 'Play again'"
+    await waitFor("!!document.querySelector('.arcade-game-over')");
+    assert.deepEqual(
+        await evaluate(STRETCH_AUDIT),
+        [],
+        "arcade text keeps the ROM's 7/6 pixel aspect"
     );
     const gameOverDraws = await evaluate(`(() => {
         const ctx = document.querySelector('canvas').getContext('2d');
@@ -1057,8 +1232,11 @@ try {
         { draws: 0, unchanged: true },
         "game over preserves the final image without repainting"
     );
-    await click(".arcade-start");
-    await waitFor("!document.querySelector('.arcade-start')");
+    await key("keyDown", "Enter", "Enter");
+    await key("keyUp", "Enter", "Enter");
+    await waitFor(
+        "!!document.querySelector('.arcade-status [aria-label=Playing]')"
+    );
     await evaluate("tickArcade(1)");
     assert.equal(
         await evaluate(
@@ -1191,7 +1369,7 @@ try {
         );
         await click(".arcade-trigger");
         await waitFor(
-            "document.querySelector('.arcade-start')?.disabled === false"
+            "!!document.querySelector('.arcade-section.is-expanded') && !document.querySelector('.arcade-arriving-alien')"
         );
         await click(".arcade-exit");
         await evaluate("tickArcade(1)");
@@ -1250,7 +1428,7 @@ try {
     await key("keyDown", "Enter", "Enter");
     await key("keyUp", "Enter", "Enter");
     await waitFor(
-        'document.querySelector(".arcade-start")?.disabled === false'
+        '!!document.querySelector(".arcade-section.is-expanded") && !document.querySelector(".arcade-arriving-alien")'
     );
     assert.deepEqual(
         await scrollStyles(),
@@ -1288,12 +1466,7 @@ try {
             return {scale: Number(getComputedStyle(board).zoom), expected: field.width / 448,
                 lines: labels.map(label => { const range = document.createRange(); range.selectNodeContents(label); return range.getClientRects().length; }),
                 transforms: fonts.map(node => getComputedStyle(node).transform),
-                whiteSpace: labels.map(node => getComputedStyle(node).whiteSpace),
-                gaps: [...board.children].map(column => {
-                    const label=column.querySelector('.arcade-label').getBoundingClientRect();
-                    const score=column.querySelector('b').getBoundingClientRect();
-                    return score.top-label.bottom;
-                })};
+                whiteSpace: labels.map(node => getComputedStyle(node).whiteSpace)};
         })()`);
         assert.ok(Math.abs(hudScale.scale - hudScale.expected) < 0.001);
         assert.ok(hudScale.lines.every(lines => lines === 1));
@@ -1301,32 +1474,7 @@ try {
         assert.ok(
             hudScale.whiteSpace.every(whiteSpace => whiteSpace === "normal")
         );
-        assert.ok(
-            hudScale.gaps.every(
-                gap => Math.abs(gap - 10 * hudScale.scale) < 0.1
-            )
-        );
         await checkCloseSpacing();
-        assert.equal(
-            await evaluate(
-                // Short screens scale the title screen down to fit, START included.
-                'Number(document.querySelector(".arcade-game").style.getPropertyValue("--arcade-fit-scale")) < 1 || document.querySelector(".arcade-start").getBoundingClientRect().height >= 44'
-            ),
-            true,
-            `START keeps a 44px target unless scaled to fit at ${width}x${height}`
-        );
-        assert.equal(
-            await evaluate(`(() => {
-            const screen = document.querySelector(".arcade-title-screen");
-            const bounds = screen.getBoundingClientRect();
-            return [...screen.children].every(child => {
-                const rect = child.getBoundingClientRect();
-                return rect.top >= bounds.top && rect.bottom <= bounds.bottom;
-            });
-        })()`),
-            true,
-            `title and Start fit at ${width}x${height}`
-        );
     }
     await evaluate('document.querySelector(".arcade-panel").style.zoom = "2"');
     await waitFor(
@@ -1351,8 +1499,55 @@ try {
         "/tmp/dikym-arcade-mobile.png",
         Buffer.from(mobileScreenshot.data, "base64")
     );
-    await click(".arcade-start");
-    await waitFor("!document.querySelector('.arcade-start')");
+    // Touch screens have no Enter key: a tap anywhere but sound and Close focuses, then starts.
+    const tap = async selector => {
+        const point = await evaluate(
+            `(() => { const r = document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })()`
+        );
+        await send("Input.dispatchTouchEvent", {
+            type: "touchStart",
+            touchPoints: [point],
+        });
+        await send("Input.dispatchTouchEvent", {
+            type: "touchEnd",
+            touchPoints: [],
+        });
+    };
+    const tapHint = () =>
+        evaluate("document.querySelector('.arcade-tap-hint').textContent");
+    const playing =
+        "!!document.querySelector('.arcade-status [aria-label=Playing]')";
+    await evaluate("document.activeElement.blur()");
+    assert.equal(
+        await tapHint(),
+        "Tap to focus",
+        "out of focus asks for a tap"
+    );
+    await tap(".arcade-sound");
+    await tap(".arcade-sound");
+    assert.equal(
+        await tapHint(),
+        "Tap to focus",
+        "tapping sound does not focus"
+    );
+    await tap(".arcade-scoreboard");
+    assert.deepEqual(
+        await evaluate(`[document.activeElement.tagName, ${playing}]`),
+        ["CANVAS", false],
+        "the first tap only focuses"
+    );
+    assert.equal(await tapHint(), "Tap to start");
+    await tap(".arcade-sound");
+    assert.equal(
+        await evaluate(playing),
+        false,
+        "tapping sound does not start"
+    );
+    await tap(".arcade-sound");
+    await tap(".arcade-scoreboard");
+    await waitFor(
+        "!!document.querySelector('.arcade-status [aria-label=Playing]')"
+    );
     for (const selector of [
         '[aria-label="Move left"]',
         '[aria-label="Move right"]',
@@ -1404,24 +1599,40 @@ try {
                 true,
                 "opening still accepts keyboard input"
             );
+            assert.equal(
+                await evaluate(
+                    "document.querySelector('.arcade-keyboard-hint .arcade-start-hint').textContent"
+                ),
+                "Enter Start",
+                "the opening animation keeps the Enter hint"
+            );
         }
         await waitFor(
-            `document.querySelector('.arcade-start')?.disabled === false`
+            `!!document.querySelector('.arcade-section.is-expanded') && !document.querySelector('.arcade-arriving-alien')`
         );
         await checkOpeningPosition();
         await checkMobileButtons();
-        await click(".arcade-start");
-        await waitFor("!document.querySelector('.arcade-start')");
+        await key("keyDown", "Enter", "Enter");
+        await key("keyUp", "Enter", "Enter");
+        await waitFor(
+            "!!document.querySelector('.arcade-status [aria-label=Playing]')"
+        );
         await setUpGame(setup);
         await evaluate("tickArcade(30)");
-        await waitFor(
-            `document.querySelector('.arcade-start')?.textContent === 'Play again'`
-        );
+        await waitFor(`!!document.querySelector('.arcade-game-over')`);
         await evaluate(
             "window.resultTicker = setInterval(() => tickArcade(1), 16)"
         );
+        await evaluate("document.activeElement.blur()");
         await click(".arcade-exit");
         if (!reduced) {
+            assert.equal(
+                await evaluate(
+                    "document.querySelector('.arcade-keyboard-hint .arcade-start-hint').textContent"
+                ),
+                "Click Focus",
+                "closing while out of focus stays out of focus"
+            );
             await checkMobileButtons();
             assert.ok(
                 await evaluate(
@@ -1529,7 +1740,7 @@ try {
             "(() => { const before = scrollY; document.querySelector('.arcade-trigger').click(); return before; })()"
         );
         await waitFor(
-            "document.querySelector('.arcade-start')?.disabled === false"
+            "!!document.querySelector('.arcade-section.is-expanded') && !document.querySelector('.arcade-arriving-alien')"
         );
         await checkOpeningPosition();
         assert.ok(
@@ -1599,7 +1810,7 @@ try {
     }
     await click(".arcade-trigger");
     await waitFor(
-        "document.querySelector('.arcade-start')?.disabled === false"
+        "!!document.querySelector('.arcade-section.is-expanded') && !document.querySelector('.arcade-arriving-alien')"
     );
     await send("Emulation.setDeviceMetricsOverride", {
         width: 393,
@@ -1662,7 +1873,7 @@ try {
             });
             await waitFor(
                 opening
-                    ? "document.querySelector('.arcade-start')?.disabled === false"
+                    ? "!!document.querySelector('.arcade-section.is-expanded') && !document.querySelector('.arcade-arriving-alien')"
                     : "!document.querySelector('.arcade-section')"
             );
             await new Promise(resolve => setTimeout(resolve, 100));
