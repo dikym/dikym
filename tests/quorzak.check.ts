@@ -55,12 +55,12 @@ assert.deepEqual(
     ALIEN_SPRITES[0][0],
     padded(4, [
         "...X...",
+        "...X...",
         "..XXX..",
-        ".XXXXX.",
-        "XX.X.XX",
+        ".XX.XX.",
         "XXXXXXX",
-        ".X.X.X.",
-        "X.....X",
+        "X.X.X.X",
+        "..X.X..",
         ".X...X.",
     ])
 );
@@ -112,6 +112,15 @@ assert.deepEqual(SCORE_GLYPHS["0"].slice(0, 7), [
     "..XXX...",
 ]);
 assert.deepEqual(SCORE_GLYPHS[" "], Array(8).fill("........"));
+assert.deepEqual(SCORE_GLYPHS["8"].slice(0, 7), [
+    "..XXX...",
+    ".X...X..",
+    ".X...X..",
+    ".XXXXX..",
+    ".X...X..",
+    ".X...X..",
+    "..XXX...",
+]);
 
 // Boot
 {
@@ -383,6 +392,80 @@ const shoot = (g: Game) => {
     assert.equal(g.memory[S.ASHOTS + 4], 0, "shot and burst gone");
     assert.ok(!litPixel(g, 211, 239), "dent in the ground");
     assert.ok(litPixel(g, 200, 239), "ground elsewhere intact");
+}
+
+// Moves the ship until its shot rises at x (wrapping like the 8-bit rack).
+const aimAt = (g: Game, x: number) => {
+    for (let i = 0; i < 400 && g.memory[S.PX] !== x - 6; i++)
+        tick(g, g.memory[S.PX] < x - 6 ? RIGHT : LEFT);
+    assert.equal(g.memory[S.PX], x - 6);
+};
+
+// A rack that marched past the left wall (x wraps below 0) can still be shot.
+{
+    const g = newGame();
+    for (let row = 0; row < 5; row++) g.memory[0x2010 + row * 11] = 0;
+    g.memory[0x2005] = 254;
+    g.memory[S.DIR] = 1;
+    run(g, 56);
+    assert.ok(g.memory[0x2005] > 200, "rack x wrapped below 0");
+    aimAt(g, (g.memory[0x2005] + 6 * 16 + 7) & 255);
+    assert.equal(shoot(g), 10, "column 6 Dome shot while the rack wraps");
+}
+
+// A rack low enough to reach the shields can still be shot between them.
+{
+    const g = newGame();
+    g.memory[0x2006] = 192;
+    run(g, 56);
+    aimAt(g, g.memory[0x2005] + 2 * 16 + 7);
+    assert.equal(shoot(g), 10, "low Dome shot between shields");
+}
+
+// An alien shot that lands on another's ground burst away from the ship bursts too.
+{
+    const g = newGame();
+    run(g, 60);
+    g.memory.set([1, 150, 224, 0], S.ASHOTS + 4);
+    run(g, 6);
+    assert.equal(
+        g.memory[S.ASHOTS + 4],
+        2,
+        "first shot bursting on the ground"
+    );
+    g.memory.set([1, 150, 220, 0], S.ASHOTS + 8);
+    run(g, 9);
+    assert.equal(g.memory[S.PSTATE], 0, "ship far away survives");
+    assert.equal(g.lives, 3);
+}
+
+// A kill updates the alien count at once (UFO and alien-shot speed depend on it).
+{
+    const g = newGame();
+    g.memory.fill(0, 0x2010 + 8, 0x2010 + 55);
+    run(g, 60);
+    assert.equal(g.memory[S.LIVECNT], 8);
+    // A shot just under the moving bottom-row Dome in column 2.
+    g.memory.set([1, g.memory[0x2005] + 2 * 16 + 7, 140], S.SHOTON);
+    for (let i = 0; i < 10 && g.memory[S.SHOTON]; i++) tick(g);
+    assert.equal(g.score, 10);
+    assert.equal(g.memory[S.LIVECNT], 7);
+}
+
+// The last alien moves every tick: 3 px to the right.
+{
+    const g = newGame();
+    g.memory.fill(0, 0x2010 + 1, 0x2010 + 55);
+    run(g, 10);
+    const xs: number[] = [];
+    for (let i = 0; i < 6; i++) {
+        tick(g);
+        xs.push(g.memory[0x2005]);
+    }
+    assert.deepEqual(
+        xs.slice(1).map((x, i) => x - xs[i]),
+        [3, 3, 3, 3, 3]
+    );
 }
 
 // Alien shots fall; a ship parked under the rack is lost three times, then game over.

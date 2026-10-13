@@ -732,7 +732,7 @@ try {
         createHash("sha256")
             .update(Buffer.from(readyFrame.split(",")[1], "base64"))
             .digest("hex"),
-        "58c5beeb134f1e2bc0151bf6dd6cbf2823841f3186d496e8bd22b7077bc7cd04",
+        "f8f4263488de00c319bf6b4506567e99384133e23fa9d52d7ca788f3bca05dda",
         "initial canvas PNG matches the native baseline"
     );
     assert.equal(

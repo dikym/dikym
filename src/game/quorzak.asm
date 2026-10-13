@@ -67,7 +67,7 @@ FIREEDGE EQU $2086
 BOMBIDX  EQU $2087      ; alien shot moved on the last tick
 
         PUBLIC PX, PSTATE, SHOTON, SHOTX, SHOTY, SHOTCNT, CURSOR, RELOAD
-        PUBLIC UFOON, UFOX, UFOTMR, AEXT, ASHOTS, LIVECNT, SBT
+        PUBLIC UFOON, UFOX, UFOTMR, AEXT, ASHOTS, LIVECNT, SBT, DIR
 
 ; ---- Vectors
         ORG 0
@@ -598,9 +598,9 @@ PLAYERSHOT:
         LDA SHOTY
         CPI 48
         JC .ufo
-        CPI 188
-        JNC .shield
-        JMP HITALIEN
+        CALL HITALIEN
+        RNZ
+        JMP .shield     ; not an alien: a shield or debris
 .ufo:   LDA UFOON
         CPI 1
         RNZ
@@ -702,13 +702,15 @@ HITUFO: MVI A,1
 ; Finds the live alien under the shot, kills it, shows its explosion, scores.
 ; Only the shot's column and its neighbours can match, since unmoved aliens lag
 ; one step behind GRIDX; scanning all 55 would overrun the tick.
+; Out: NZ when an alien was hit.
 HITALIEN:
         LDA GRIDX
         MOV B,A
         LDA SHOTX
-        SUB B
+        SUB B           ; x relative to the rack, modulo 256 (GRIDX may wrap)
         MVI C,0
-        JC .start
+        CPI $C0         ; $C0-$FF: left of the rack
+        JNC .start
         RRC
         RRC
         RRC
@@ -724,7 +726,7 @@ HITALIEN:
         STA HCNT
 .col:   LDA HCOL
         CPI 11
-        RNC
+        JNC .none
         MOV C,A
 .loop:  MVI B,0
         LXI H,ALIENS
@@ -753,8 +755,11 @@ HITALIEN:
         LXI H,HCNT
         DCR M
         JNZ .col
+.none:  XRA A
         RET
 .found: MVI M,0
+        LXI H,LIVECNT   ; the UFO and alien-shot speed read the count at once
+        DCR M
         MOV A,D
         STA AEX
         MOV A,E
@@ -866,7 +871,8 @@ ALIENSHOTS:
         LDA PX
         ADI 6
         SUB C
-        RC
+        CPI $C0         ; ship left of the rack (GRIDX may wrap)
+        RNC
         RRC
         RRC
         RRC
@@ -971,16 +977,39 @@ BOMBSTEP:
         MVI A,1
         STA BLITOP
         JMP BURSTAT
-.hit:   INX H
+.hit:   LDA SHOTON      ; the player's shot resolves a meeting on its own turn
+        ORA A
+        JZ .solid
+        INX H
+        LDA SHOTX
+        SUB M
+        DCX H
+        CPI 3
+        JC .draw
+.solid: INX H
         INX H
         MOV A,M
         DCX H
         DCX H
-        CPI 204
-        JNC .ship
         CPI 186
-        JC .draw
-        ADI 2           ; shield
+        JC .draw        ; high up it passes through debris
+        CPI 204
+        JC .burst       ; a shield
+        INX H
+        LDA PX
+        MOV B,A
+        MOV A,M
+        DCX H
+        ADI 2
+        SUB B
+        CPI 15          ; columns overlap the ship's
+        JC .ship
+.burst: INX H
+        INX H
+        MOV A,M
+        DCX H
+        DCX H
+        ADI 2
         MOV E,A
         JMP BOMBBURST
 .ship:  MVI M,0
@@ -1226,17 +1255,22 @@ UFOTEXT:
         JNZ .ch
         RET
 
-; Moves the next live alien one step. When all have moved, the tick starts the
-; next pass instead, keeping the scan and a move out of the same tick. The rack
-; waits while an alien or the ship explodes.
+; Moves the next live alien one step, starting a new pass first when all have
+; moved, so the last alien moves every tick. The rack waits while an alien or
+; the ship explodes.
 MARCH:  LDA PSTATE
         LXI H,AEXT
         ORA M
         RNZ
 .find:  LDA CURSOR
         CPI 55
-        JZ STARTPASS
-        MOV C,A
+        JNZ .check
+        CALL STARTPASS
+        LDA MODE
+        CPI 1
+        RNZ
+        LDA CURSOR
+.check: MOV C,A
         MVI B,0
         LXI H,ALIENS
         DAD B
@@ -1456,8 +1490,8 @@ DOME:   DB $00,$00,$1A,$3C,$6A,$6C,$FA,$FC,$FA,$6C,$6A,$3C,$1A,$00,$00,$00
         DB $00,$00,$1C,$3A,$6C,$6A,$FC,$FA,$FC,$6A,$6C,$3A,$1C,$00,$00,$00
 TWIN:   DB $00,$00,$00,$72,$FC,$DA,$F0,$F8,$F0,$DA,$FC,$72,$00,$00,$00,$00
         DB $00,$00,$00,$70,$FA,$DC,$F2,$F8,$F2,$DC,$FA,$70,$00,$00,$00,$00
-SPIRE:  DB $00,$00,$00,$00,$1A,$3D,$68,$FC,$68,$3D,$1A,$00,$00,$00,$00,$00
-        DB $00,$00,$00,$00,$19,$3E,$68,$FC,$68,$3E,$19,$00,$00,$00,$00,$00
+SPIRE:  DB $00,$00,$00,$00,$0C,$19,$3E,$E8,$3E,$19,$0C,$00,$00,$00,$00,$00
+        DB $00,$00,$00,$00,$0D,$1A,$3C,$E8,$3C,$1A,$0D,$00,$00,$00,$00,$00
 SHIP:   DB $03,$07,$06,$0E,$1E,$7E,$FA,$7E,$1E,$0E,$06,$07,$03
 SHIPX:  DB $21,$03,$15,$07,$06,$1B,$29,$1B,$06,$07,$15,$03,$21
         DB $13,$06,$2B,$05,$1B,$09,$2A,$09,$1B,$05,$2B,$06,$13
@@ -1469,18 +1503,18 @@ SHIELD: DB $0F,$1F,$3F,$7F,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$7F,$
 PSHOT:  DB $F0
 BLASTGFX: DB $AA,$5C,$FB,$3C,$76,$89
 MASK12: DB $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
-BOMBGFX: DB $88,$54,$22, $22,$54,$88   ; twist
+BOMBGFX: DB $44,$AA,$10, $10,$AA,$44   ; twist
         DB $20,$FE,$20, $10,$FE,$10    ; bolt
         DB $48,$B6,$48, $92,$6C,$92    ; beads
 ; Digits 0-9 then space, 8 columns each.
 FONT:   DB $00,$7C,$82,$92,$82,$7C,$00,$00
-        DB $00,$00,$42,$FE,$02,$00,$00,$00
-        DB $00,$46,$8A,$92,$92,$62,$00,$00
+        DB $00,$42,$42,$FE,$02,$02,$00,$00
+        DB $00,$8E,$92,$92,$92,$62,$00,$00
         DB $00,$82,$92,$92,$92,$6C,$00,$00
         DB $00,$F0,$10,$10,$10,$FE,$00,$00
-        DB $00,$E4,$A2,$A2,$A2,$9C,$00,$00
-        DB $00,$3C,$52,$92,$92,$0C,$00,$00
+        DB $00,$F2,$92,$92,$92,$8C,$00,$00
+        DB $00,$FE,$92,$92,$92,$9E,$00,$00
         DB $00,$80,$80,$9E,$A0,$C0,$00,$00
-        DB $00,$6C,$92,$92,$92,$6C,$00,$00
-        DB $00,$60,$92,$92,$94,$78,$00,$00
+        DB $00,$7C,$92,$92,$92,$7C,$00,$00
+        DB $00,$F2,$92,$92,$92,$FE,$00,$00
         DB $00,$00,$00,$00,$00,$00,$00,$00

@@ -57,7 +57,7 @@ const readState = (g: Game) => {
     const x = m[0x2005];
     const y = m[0x2006];
     g.invaders.forEach((invader, i) => {
-        invader.x = x + (i % COLS) * 16;
+        invader.x = (x + (i % COLS) * 16) & 255;
         invader.y = y - Math.floor(i / COLS) * 16;
         invader.row = 4 - Math.floor(i / COLS);
         invader.alive = m[0x2010 + i] !== 0;
