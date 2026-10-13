@@ -18,19 +18,20 @@ src/
 ├── main.tsx             # Entry point
 ├── style.css            # Tailwind entry
 ├── components/
-│   ├── arcade/          # SpaceInvaders, AttractScreen, CrabSprite
+│   ├── arcade/          # Quorzak, AttractScreen, AlienSprite
 │   ├── layout/          # Navigation, MobileMenu, Footer, Curtain
 │   ├── sections/        # Hero, About, Skills, Projects, Contact, Arcade
 │   └── ui/              # Small reusable pieces (ProjectCard, SkillCard, SocialLinks)
 ├── data/                # Static content (projectsData, skillsData)
-├── game/                # Space Invaders engine, sprites, ROM, CPU, audio
+├── game/                # Quorzak ROM source (.asm), generated rom.ts, adapter, sprites, CPU, audio
 ├── hooks/               # Navigation, scroll position, reveal and scrub hooks
 └── types/               # Shared interfaces (Skill, SkillCategory, Project, NavigationItem)
 
 public/                  # Icons, fonts, audio, licenses, favicon, social preview
-space-invaders/          # Second Vite entry: standalone page for space-invaders.dikym.me
+quorzak/                 # Second Vite entry: standalone page for quorzak.dikym.me
+tools/                   # asm8080.ts: assembles src/game/quorzak.asm (npm run rom)
 tests/                   # Browser and engine checks, with independent fixtures
-docs/                    # Space Invaders sources and implementation notes
+docs/                    # Quorzak cabinet/ROM notes and design docs
 ```
 
 ## Conventions
