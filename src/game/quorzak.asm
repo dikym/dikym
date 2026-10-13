@@ -598,7 +598,38 @@ PLAYERSHOT:
         MVI B,6
         JMP BLIT
 
-SHOTVSBOMB: XRA A       ; Task 5
+; Out: NZ when the player shot met a live alien shot; both are removed.
+SHOTVSBOMB:
+        LXI H,ASHOTS
+.loop:  MOV A,M
+        ORA A
+        JZ .next
+        INX H
+        LDA SHOTX
+        SUB M
+        DCX H
+        CPI 3
+        JNC .next
+        INX H
+        INX H
+        LDA SHOTY
+        SUB M
+        DCX H
+        DCX H
+        ADI 8
+        CPI 16
+        JNC .next
+        CALL BOMBERASE
+        MVI M,0
+        MVI A,1
+        ORA A
+        RET
+.next:  LXI D,4
+        DAD D
+        MOV A,L
+        CPI LOW(ASHOTS+12)
+        JNZ .loop
+        XRA A
         RET
 HITUFO: RET             ; Task 6
 
@@ -721,7 +752,251 @@ ADDSCORE:
         ORI 16
         STA PULSEA
         RET
-ALIENSHOTS: RET         ; Task 5
+; Moves every alien shot, then fires one when the reload runs out.
+ALIENSHOTS:
+        LXI H,ASHOTS
+.each:  MOV A,M
+        ORA A
+        CNZ BOMBSTEP
+        LXI D,4
+        DAD D
+        MOV A,L
+        CPI LOW(ASHOTS+12)
+        JNZ .each
+        LDA PSTATE
+        ORA A
+        RNZ
+        LXI H,RELOAD
+        DCR M
+        RNZ
+        CALL RELOADTIME
+        STA RELOAD
+        LDA NEXTSHOT
+        MOV B,A
+        INR A
+        CPI 3
+        JC .type
+        XRA A
+.type:  STA NEXTSHOT
+        MOV A,B
+        ADD A
+        ADD A
+        ADI LOW(ASHOTS)
+        MOV L,A
+        MVI H,HIGH(ASHOTS)
+        MOV A,M
+        ORA A
+        RNZ
+        MOV A,B
+        ORA A
+        JNZ .table
+        LDA GRIDX       ; twist: the column above the ship
+        MOV C,A
+        LDA PX
+        ADI 6
+        SUB C
+        RC
+        RRC
+        RRC
+        RRC
+        RRC
+        ANI $0F
+        CPI 11
+        RNC
+        JMP .col
+.table: LDA COLIDX
+        INR A
+        ANI 15
+        STA COLIDX
+        MOV C,A
+        MVI B,0
+        PUSH H
+        LXI H,COLTAB
+        DAD B
+        MOV A,M
+        POP H
+.col:   MOV C,A
+        MVI B,5
+.find:  PUSH H
+        MOV E,C
+        MVI D,0
+        LXI H,ALIENS
+        DAD D
+        MOV A,M
+        POP H
+        ORA A
+        JNZ .fire
+        MOV A,C
+        ADI 11
+        MOV C,A
+        DCR B
+        JNZ .find
+        RET
+.fire:  CALL ALIENXY
+        MVI M,1
+        INX H
+        MOV A,D
+        ADI 7
+        MOV M,A
+        INX H
+        MOV A,E
+        ADI 8
+        MOV M,A
+        INX H
+        MVI M,0
+        DCX H
+        DCX H
+        DCX H
+        XRA A
+        STA BLITOP
+        JMP BOMBBLIT
+
+; In: HL = live alien shot. Moves it down and resolves what it touched. Keeps HL.
+BOMBSTEP:
+        MVI A,1
+        STA BLITOP
+        CALL BOMBBLIT
+        INX H
+        INX H
+        LDA LIVECNT
+        CPI 9
+        MVI A,1
+        JNC .slow
+        MVI A,4
+.slow:  ADD M
+        MOV M,A
+        INX H
+        INR M
+        DCX H
+        DCX H
+        DCX H
+        CPI 232
+        JNC .gone
+        MVI A,2
+        STA BLITOP
+        XRA A
+        STA HIT
+        CALL BOMBBLIT
+        LDA HIT
+        ORA A
+        JNZ .hit
+.draw:  XRA A
+        STA BLITOP
+        JMP BOMBBLIT
+.gone:  MVI M,0
+        RET
+.hit:   INX H
+        INX H
+        MOV A,M
+        DCX H
+        DCX H
+        CPI 204
+        JNC .ship
+        CPI 186
+        JC .draw
+        MVI M,0         ; shield: blast a hole under the shot
+        INX H
+        MOV A,M
+        DCR A
+        MOV D,A
+        INX H
+        MOV A,M
+        ADI 2
+        MOV E,A
+        DCX H
+        DCX H
+        PUSH H
+        MVI A,1
+        STA BLITOP
+        LXI H,BLASTGFX
+        MVI B,6
+        CALL BLIT
+        POP H
+        RET
+.ship:  MVI M,0
+        JMP KILLPLAYER
+
+; In: HL = alien shot record; BLITOP set. Keeps HL.
+BOMBBLIT:
+        PUSH H
+        MOV A,L
+        RRC
+        RRC
+        ANI 3
+        ADD A
+        MOV C,A
+        INX H
+        MOV D,M
+        INX H
+        MOV E,M
+        INX H
+        MOV A,M
+        RRC
+        RRC
+        ANI 1
+        ADD C
+        MOV C,A
+        ADD A
+        ADD C
+        MOV C,A
+        MVI B,0
+        LXI H,BOMBGFX
+        DAD B
+        MVI B,3
+        CALL BLIT
+        POP H
+        RET
+
+BOMBERASE:
+        MVI A,1
+        STA BLITOP
+        JMP BOMBBLIT
+
+; Starts the ship explosion and clears every alien shot. Keeps HL.
+KILLPLAYER:
+        LDA PSTATE
+        ORA A
+        RNZ
+        PUSH H
+        MVI A,64
+        STA PSTATE
+        MVI A,1
+        STA BLITOP
+        LDA PX
+        MOV D,A
+        MVI E,216
+        LXI H,SHIP
+        MVI B,13
+        CALL BLIT
+        LXI H,ASHOTS
+.clr:   MOV A,M
+        ORA A
+        JZ .n
+        CALL BOMBERASE
+        MVI M,0
+.n:     LXI D,4
+        DAD D
+        MOV A,L
+        CPI LOW(ASHOTS+12)
+        JNZ .clr
+        LDA PULSEA
+        ORI 4
+        STA PULSEA
+        POP H
+        RET
+
+; Out: A = ticks between alien shots for the current score.
+RELOADTIME:
+        LDA SCORE+1
+        MOV B,A
+        LXI H,RELOADS
+.loop:  MOV A,B
+        CMP M
+        INX H
+        MOV A,M
+        INX H
+        RNC
+        JMP .loop
 UFO:        RET         ; Task 6
 
 ; Moves the next live alien one step. When all have moved, the tick starts the
@@ -932,6 +1207,8 @@ SHIELDX: DB 32, 77, 122, 167
 ROWGFX:  DW DOME, DOME, TWIN, TWIN, SPIRE
 NOTEBITS: DB 1, 2, 4, 8
 ROWPTS:  DB $10, $10, $20, $20, $30
+COLTAB:  DB 5, 9, 2, 7, 0, 10, 3, 8, 6, 1, 4, 9, 2, 10, 7, 0
+RELOADS: DB $30, 7, $20, 8, $10, 11, $02, 16, $00, 48
 
         PUBLIC DOME, TWIN, SPIRE, SHIP, SHIPX, UFOGFX, UFOXGFX, AEXPLGFX
         PUBLIC SHIELD, PSHOT, BLASTGFX, BOMBGFX, FONT

@@ -192,4 +192,25 @@ const shoot = (g: Game) => {
     assert.deepEqual([g.score, g.lives], [1510, 4]);
 }
 
+// Alien shots fall; a ship parked under the rack is lost three times, then game over.
+{
+    const g = newGame();
+    const bombs = () => [0, 4, 8].filter(i => g.memory[S.ASHOTS + i]).length;
+    let seen = 0;
+    const lives = [g.lives];
+    for (let frames = 0; !g.over; frames++) {
+        assert.ok(frames < 20000, "game never ended");
+        const parked = g.memory[S.PX] >= 100 || g.memory[S.PSTATE];
+        tick(g, parked ? IDLE : RIGHT, { bombs: false });
+        seen = Math.max(seen, bombs());
+        if (g.lives !== lives.at(-1)) lives.push(g.lives);
+    }
+    assert.ok(seen >= 1, "alien shots appeared");
+    assert.deepEqual(lives, [3, 2, 1, 0]);
+    assert.equal(g.memory[0x2000], 2);
+    const memory = g.memory.slice();
+    step(g, FIRE, 1);
+    assert.deepEqual(g.memory, memory, "step is a no-op after game over");
+}
+
 console.log("quorzak: ok");
