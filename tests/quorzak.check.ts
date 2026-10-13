@@ -213,4 +213,54 @@ const shoot = (g: Game) => {
     assert.deepEqual(g.memory, memory, "step is a no-op after game over");
 }
 
+// The UFO crosses from the left on an even shot count, with its loop sound.
+{
+    const g = newGame();
+    g.memory[S.UFOTMR] = 1;
+    g.memory[S.UFOTMR + 1] = 0;
+    tick(g, IDLE, { ufo: false });
+    assert.equal(g.memory[S.UFOON], 1);
+    assert.equal(g.memory[S.UFOX], 8);
+    for (let i = 0; i < 300 && g.memory[S.UFOON]; i++) tick(g);
+    assert.equal(g.memory[S.UFOON], 0, "UFO left the screen");
+    assert.ok(
+        g.events.some(e => e.port === 3 && e.value & 1),
+        "UFO sound"
+    );
+}
+
+// No UFO with fewer than 8 aliens.
+{
+    const g = newGame();
+    g.memory.fill(0, 0x2010 + 7, 0x2010 + 55);
+    run(g, 60);
+    g.memory[S.UFOTMR] = 1;
+    g.memory[S.UFOTMR + 1] = 0;
+    run(g, 2, IDLE, { ufo: false });
+    assert.equal(g.memory[S.UFOON], 0);
+}
+
+// UFO score follows the 16-entry table by shot count.
+const UFO_TABLE = [10, 5, 5, 10, 15, 10, 10, 5, 30, 10, 10, 10, 5, 15, 10, 5];
+UFO_TABLE.forEach((tens, count) => {
+    const g = newGame();
+    g.memory[S.UFOTMR] = 1;
+    g.memory[S.UFOTMR + 1] = 0;
+    tick(g, IDLE, { ufo: false });
+    g.memory[S.SHOTCNT] = count;
+    g.memory[S.SHOTON] = 1;
+    g.memory[S.SHOTX] = g.memory[S.UFOX] + 8;
+    g.memory[S.SHOTY] = 52;
+    const before = g.score;
+    for (let i = 0; i < 60 && g.memory[S.UFOON] !== 3; i++) tick(g);
+    assert.equal(g.score - before, tens * 10, `shot count ${count}`);
+    assert.deepEqual(g.ufoPoints, {
+        x: g.memory[S.UFOX],
+        y: 40,
+        points: tens * 10,
+    });
+    run(g, 65);
+    assert.equal(g.ufoPoints, null);
+});
+
 console.log("quorzak: ok");

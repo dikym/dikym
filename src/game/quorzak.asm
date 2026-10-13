@@ -631,7 +631,42 @@ SHOTVSBOMB:
         JNZ .loop
         XRA A
         RET
-HITUFO: RET             ; Task 6
+HITUFO: MVI A,1
+        STA BLITOP
+        CALL UFOBLIT
+        XRA A
+        STA BLITOP
+        CALL UFOXBLIT
+        MVI A,2
+        STA UFOON
+        MVI A,24
+        STA UFOTICK
+        LDA SHOTCNT
+        ANI 15
+        MOV C,A
+        MVI B,0
+        LXI H,UFOSC
+        DAD B
+        MOV A,M
+        STA UFOK
+        MOV C,A
+        ADD A
+        ADD C
+        ADD A
+        MOV C,A
+        LXI H,UFOKINDS
+        DAD B
+        MOV A,M
+        STA UFOV
+        INX H
+        MOV E,M
+        INX H
+        MOV D,M
+        CALL ADDSCORE
+        LDA PULSEB
+        ORI 16
+        STA PULSEB
+        RET
 
 ; Finds the live alien under the shot, kills it, shows its explosion, scores.
 ; Only the shot's column and its neighbours can match, since unmoved aliens lag
@@ -997,7 +1032,133 @@ RELOADTIME:
         INX H
         RNC
         JMP .loop
-UFO:        RET         ; Task 6
+; UFO: waits on its timer, crosses at y 40, explodes, then shows its score.
+UFO:    LDA UFOON
+        ORA A
+        JZ .wait
+        DCR A
+        JZ .fly
+        LXI H,UFOTICK
+        DCR M
+        RNZ
+        LDA UFOON
+        CPI 2
+        JZ .score
+        MVI A,1         ; score shown long enough: erase it
+        STA BLITOP
+        CALL UFOTEXT
+        XRA A
+        STA UFOON
+        STA UFOPTS
+        RET
+.score: MVI A,1
+        STA BLITOP
+        CALL UFOXBLIT
+        XRA A
+        STA BLITOP
+        CALL UFOTEXT
+        MVI A,3
+        STA UFOON
+        MVI A,64
+        STA UFOTICK
+        LDA UFOV
+        STA UFOPTS
+        LDA UFOX
+        STA UFOPX
+        RET
+.wait:  LHLD UFOTMR
+        DCX H
+        SHLD UFOTMR
+        MOV A,H
+        ORA L
+        RNZ
+        LXI H,1536
+        SHLD UFOTMR
+        LDA LIVECNT
+        CPI 8
+        RC
+        LDA SHOTCNT
+        ANI 1
+        STA UFODIR
+        MVI A,8
+        JZ .spawn
+        MVI A,201
+.spawn: STA UFOX
+        MVI A,1
+        STA UFOON
+        XRA A
+        STA BLITOP
+        JMP UFOBLIT
+.fly:   MVI A,1
+        STA BLITOP
+        CALL UFOBLIT
+        LDA UFODIR
+        ORA A
+        LDA UFOX
+        JNZ .left
+        INR A
+        CPI 202
+        JNC .gone
+        JMP .move
+.left:  DCR A
+        CPI 8
+        JC .gone
+.move:  STA UFOX
+        XRA A
+        STA BLITOP
+        JMP UFOBLIT
+.gone:  XRA A
+        STA UFOON
+        RET
+
+UFOBLIT: LXI H,UFOGFX
+UFODRAW: LDA UFOX
+        MOV D,A
+        MVI E,40
+        MVI B,15
+        JMP BLIT
+UFOXBLIT: LXI H,UFOXGFX
+        JMP UFODRAW
+
+; Draws (or erases, per BLITOP) the three score characters of kind UFOK at UFOX.
+UFOTEXT:
+        LDA UFOK
+        MOV C,A
+        ADD A
+        ADD C
+        ADD A
+        ADI 3
+        MOV C,A
+        MVI B,0
+        LXI H,UFOKINDS
+        DAD B
+        LDA UFOX
+        MOV D,A
+        MVI C,3
+.ch:    PUSH B
+        PUSH D
+        PUSH H
+        MOV A,M
+        ADD A
+        ADD A
+        ADD A
+        MOV C,A
+        MVI B,0
+        LXI H,FONT
+        DAD B
+        MVI B,8
+        MVI E,40
+        CALL BLIT
+        POP H
+        POP D
+        POP B
+        INX H
+        MOV A,D
+        ADI 8
+        MOV D,A
+        DCR C
+        JNZ .ch
+        RET
 
 ; Moves the next live alien one step. When all have moved, the tick starts the
 ; next pass instead, keeping the scan and a move out of the same tick.
@@ -1209,6 +1370,13 @@ NOTEBITS: DB 1, 2, 4, 8
 ROWPTS:  DB $10, $10, $20, $20, $30
 COLTAB:  DB 5, 9, 2, 7, 0, 10, 3, 8, 6, 1, 4, 9, 2, 10, 7, 0
 RELOADS: DB $30, 7, $20, 8, $10, 11, $02, 16, $00, 48
+; UFO kind per shot count (0: 50, 1: 100, 2: 150, 3: 300 points).
+UFOSC:   DB 1, 0, 0, 1, 2, 1, 1, 0, 3, 1, 1, 1, 0, 2, 1, 0
+; Per kind: points/10, BCD low, BCD high, three FONT indexes (10 = space).
+UFOKINDS: DB 5, $50, $00, 10, 5, 0
+        DB 10, $00, $01, 1, 0, 0
+        DB 15, $50, $01, 1, 5, 0
+        DB 30, $00, $03, 3, 0, 0
 
         PUBLIC DOME, TWIN, SPIRE, SHIP, SHIPX, UFOGFX, UFOXGFX, AEXPLGFX
         PUBLIC SHIELD, PSHOT, BLASTGFX, BOMBGFX, FONT
