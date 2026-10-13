@@ -69,10 +69,12 @@ const readState = (g: Game) => {
 
 const frame = (g: Game) => {
     // IRQs occur at scanlines 96 and 224; the crystal also clocks the 8080 / 10.
+    // A frame ends as RST 1 (the ROM's tick) is raised, so each step runs one
+    // whole tick and the UI never samples VRAM halfway through one.
     for (const [cycles, vector] of [
-        [96 * 128, 8],
         [128 * 128, 16],
         [38 * 128, 0],
+        [96 * 128, 8],
     ]) {
         g.deadline += cycles;
         if (g.deadline > g.cpu.T()) g.cpu.steps(g.deadline - g.cpu.T());

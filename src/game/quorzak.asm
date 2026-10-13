@@ -57,6 +57,8 @@ ASHOTS   EQU $2070      ; 3 x (on, x, y, frame)
 AEX      EQU $207C
 AEY      EQU $207D
 SAVESP   EQU $207E      ; 2 bytes
+HCOL     EQU $2080      ; HITALIEN column being searched
+HCNT     EQU $2081
 
         PUBLIC PX, PSTATE, SHOTON, SHOTX, SHOTY, SHOTCNT, CURSOR, RELOAD
         PUBLIC UFOON, UFOX, UFOTMR, AEXT, ASHOTS, LIVECNT
@@ -67,12 +69,16 @@ SAVESP   EQU $207E      ; 2 bytes
         LXI SP,STACK
         JMP RESET
 
-        ORG 8           ; RST 1, scanline 96: unused
+        ORG 8           ; RST 1, scanline 96: one game tick
+        JMP ISR
+
+        ORG $10         ; RST 2, scanline 224: unused
         EI
         RET
 
-        ORG $10         ; RST 2, scanline 224: one game tick
-        PUSH PSW
+; The tick runs at scanline 96 so it finishes before the frame ends, when the
+; cabinet adapter samples VRAM for display.
+ISR:    PUSH PSW
         PUSH B
         PUSH D
         PUSH H
@@ -254,50 +260,82 @@ BLIT:   MVI A,248
         RRC
         ANI $1F
         ADI HIGH(VRAM)
-        MOV D,A         ; DE = VRAM byte for column x, bottom row
-.col:   XRA A
-        OUT SHIFTDAT
-        MOV A,M
-        OUT SHIFTDAT
-        IN SHIFTIN
-        CALL .apply
-        INR E
+        MOV D,A
+        XCHG            ; HL = VRAM byte for column x, bottom row; DE = sprite
         XRA A
-        OUT SHIFTDAT
-        IN SHIFTIN
-        CALL .apply
-        DCR E
-        MOV A,E
-        ADI 32
-        MOV E,A
-        JNC .same
-        INR D
-.same:  INX H
-        DCR B
-        JNZ .col
-        RET
-.apply: MOV C,A
+        OUT SHIFTDAT    ; each column then leaves the register's high byte 0
         LDA BLITOP
         ORA A
         JZ .or
         DCR A
         JZ .erase
-        LDAX D
-        ANA C
-        RZ
-        MVI A,1
+.test:  LDAX D
+        OUT SHIFTDAT
+        IN SHIFTIN
+        ANA M
+        JNZ .hit
+        INR L
+        XRA A
+        OUT SHIFTDAT
+        IN SHIFTIN
+        ANA M
+        JNZ .hit
+        DCR L
+        MOV A,L
+        ADI 32
+        MOV L,A
+        JNC .tnext
+        INR H
+.tnext: INX D
+        DCR B
+        JNZ .test
+        RET
+.hit:   MVI A,1
         STA HIT
         RET
 .or:    LDAX D
-        ORA C
-        STAX D
+        OUT SHIFTDAT
+        IN SHIFTIN
+        ORA M
+        MOV M,A
+        INR L
+        XRA A
+        OUT SHIFTDAT
+        IN SHIFTIN
+        ORA M
+        MOV M,A
+        DCR L
+        MOV A,L
+        ADI 32
+        MOV L,A
+        JNC .onext
+        INR H
+.onext: INX D
+        DCR B
+        JNZ .or
         RET
-.erase: MOV A,C
+.erase: LDAX D
+        OUT SHIFTDAT
+        IN SHIFTIN
         CMA
-        MOV C,A
-        LDAX D
-        ANA C
-        STAX D
+        ANA M
+        MOV M,A
+        INR L
+        XRA A
+        OUT SHIFTDAT
+        IN SHIFTIN
+        CMA
+        ANA M
+        MOV M,A
+        DCR L
+        MOV A,L
+        ADI 32
+        MOV L,A
+        JNC .enext
+        INR H
+.enext: INX D
+        DCR B
+        JNZ .erase
         RET
 
 ; In: C = alien index. Out: B = row, D = x, E = top y. Aliens at or after CURSOR
@@ -371,13 +409,18 @@ ALIENGFX:
         RET
 
 ; Blits alien C (alive or not) at its position with frame A. Keeps C.
+; Only columns 2-13 of the 16-column cell hold pixels.
 ALIENBLIT:
         PUSH B
         PUSH PSW
         CALL ALIENXY
         POP PSW
         CALL ALIENGFX
-        MVI B,16
+        INX H
+        INX H
+        INR D
+        INR D
+        MVI B,12
         CALL BLIT
         POP B
         RET
@@ -398,24 +441,296 @@ TICK:   LDA MODE
         RNZ
         JMP SOUND
 
-PLAYER:     RET         ; Task 4
-PLAYERSHOT: RET         ; Task 4
+; Ship: erase, move from the inputs, draw. While dying, plays the explosion.
+PLAYER: LDA PSTATE
+        ORA A
+        JNZ .dying
+        MVI A,1
+        STA BLITOP
+        CALL .ship
+        IN INPUTS
+        MOV B,A
+        LDA PX
+        MOV C,A
+        MOV A,B
+        ANI $20
+        JZ .noleft
+        MOV A,C
+        CPI 17
+        JC .noleft
+        DCR C
+.noleft: MOV A,B
+        ANI $40
+        JZ .noright
+        MOV A,C
+        CPI 185
+        JNC .noright
+        INR C
+.noright: MOV A,C
+        STA PX
+        XRA A
+        STA BLITOP
+.ship:  LXI H,SHIP
+.blit:  LDA PX
+        MOV D,A
+        MVI E,216
+        MVI B,13
+        JMP BLIT
+.dying: DCR A
+        STA PSTATE
+        JZ .respawn
+        CALL .unexplode
+        XRA A
+        STA BLITOP
+        LDA PSTATE
+        ANI 4
+        LXI H,SHIPX
+        JZ .blit
+        LXI H,SHIPX+13
+        JMP .blit
+.respawn:
+        CALL .unexplode
+        LXI H,LIVES
+        DCR M
+        JZ GAMEOVER
+        MVI A,16
+        STA PX
+        RET
+.unexplode:
+        MVI A,1
+        STA BLITOP
+        LXI H,SHIPX
+        CALL .blit
+        LXI H,SHIPX+13
+        JMP .blit
+
+; Player shot: fire when idle, else move 4 px up and resolve what it touched.
+PLAYERSHOT:
+        LDA AEXT
+        ORA A
+        JZ .noexp
+        DCR A
+        STA AEXT
+        JNZ .noexp
+        MVI A,1         ; explosion over: erase it
+        STA BLITOP
+        LDA AEX
+        MOV D,A
+        LDA AEY
+        MOV E,A
+        LXI H,AEXPLGFX
+        MVI B,16
+        CALL BLIT
+.noexp: LDA SHOTON
+        ORA A
+        JNZ .fly
+        LDA PSTATE
+        LXI H,AEXT
+        ORA M
+        RNZ
+        IN INPUTS
+        ANI $10
+        RZ
+        LDA PX
+        ADI 6
+        STA SHOTX
+        MVI A,212
+        STA SHOTY
+        MVI A,1
+        STA SHOTON
+        LXI H,SHOTCNT
+        INR M
+        LDA PULSEA
+        ORI 2
+        STA PULSEA
+        JMP .draw
+.fly:   MVI A,1
+        STA BLITOP
+        CALL .blit
+        LDA SHOTY
+        SUI 4
+        STA SHOTY
+        CPI 32
+        JC .gone
+        MVI A,2
+        STA BLITOP
+        XRA A
+        STA HIT
+        CALL .blit
+        LDA HIT
+        ORA A
+        JNZ .hit
+.draw:  XRA A
+        STA BLITOP
+.blit:  LDA SHOTX
+        MOV D,A
+        LDA SHOTY
+        MOV E,A
+        LXI H,PSHOT
+        MVI B,1
+        JMP BLIT
+.gone:  XRA A
+        STA SHOTON
+        RET
+.hit:   XRA A
+        STA SHOTON
+        CALL SHOTVSBOMB
+        RNZ
+        LDA SHOTY
+        CPI 48
+        JC .ufo
+        CPI 188
+        JNC .shield
+        JMP HITALIEN
+.ufo:   LDA UFOON
+        CPI 1
+        RNZ
+        JMP HITUFO
+.shield: LDA SHOTX
+        SUI 2
+        MOV D,A
+        LDA SHOTY
+        SUI 4
+        MOV E,A
+        MVI A,1
+        STA BLITOP
+        LXI H,BLASTGFX
+        MVI B,6
+        JMP BLIT
+
+SHOTVSBOMB: XRA A       ; Task 5
+        RET
+HITUFO: RET             ; Task 6
+
+; Finds the live alien under the shot, kills it, shows its explosion, scores.
+; Only the shot's column and its neighbours can match, since unmoved aliens lag
+; one step behind GRIDX; scanning all 55 would overrun the tick.
+HITALIEN:
+        LDA GRIDX
+        MOV B,A
+        LDA SHOTX
+        SUB B
+        MVI C,0
+        JC .start
+        RRC
+        RRC
+        RRC
+        RRC
+        ANI $0F
+        ORA A
+        JZ .start
+        DCR A
+        MOV C,A
+.start: MOV A,C
+        STA HCOL
+        MVI A,3
+        STA HCNT
+.col:   LDA HCOL
+        CPI 11
+        RNC
+        MOV C,A
+.loop:  MVI B,0
+        LXI H,ALIENS
+        DAD B
+        MOV A,M
+        ORA A
+        JZ .next
+        CALL ALIENXY
+        LDA SHOTX
+        SUB D
+        SUI 2
+        CPI 12
+        JNC .next
+        LDA SHOTY
+        ADI 3
+        SUB E
+        CPI 11
+        JC .found
+.next:  MOV A,C
+        ADI 11
+        MOV C,A
+        CPI 55
+        JC .loop
+        LXI H,HCOL
+        INR M
+        LXI H,HCNT
+        DCR M
+        JNZ .col
+        RET
+.found: MVI M,0
+        MOV A,D
+        STA AEX
+        MOV A,E
+        STA AEY
+        MOV A,B
+        STA TMPA
+        MVI A,1
+        STA BLITOP
+        MOV A,C
+        LXI H,CURSOR
+        CMP M
+        LDA FRAME
+        JC .frame
+        XRI 1
+.frame: CALL ALIENBLIT
+        XRA A
+        STA BLITOP
+        LDA AEX
+        MOV D,A
+        LDA AEY
+        MOV E,A
+        LXI H,AEXPLGFX
+        MVI B,16
+        CALL BLIT
+        MVI A,16
+        STA AEXT
+        LDA TMPA
+        MOV C,A
+        MVI B,0
+        LXI H,ROWPTS
+        DAD B
+        MOV E,M
+        MVI D,0
+        CALL ADDSCORE
+        LDA PULSEA
+        ORI 8
+        STA PULSEA
+        RET
+
+; Adds BCD points D:E to the score; the first time it reaches 1,500 adds a ship.
+ADDSCORE:
+        LDA SCORE
+        ADD E
+        DAA
+        STA SCORE
+        LDA SCORE+1
+        ADC D
+        DAA
+        STA SCORE+1
+        LDA EXTRA
+        ORA A
+        RNZ
+        LDA SCORE+1
+        CPI $15
+        RC
+        MVI A,1
+        STA EXTRA
+        LXI H,LIVES
+        INR M
+        LDA PULSEA
+        ORI 16
+        STA PULSEA
+        RET
 ALIENSHOTS: RET         ; Task 5
 UFO:        RET         ; Task 6
 
-; Moves the next live alien one step; a new pass starts when all have moved.
+; Moves the next live alien one step. When all have moved, the tick starts the
+; next pass instead, keeping the scan and a move out of the same tick.
 MARCH:
 .find:  LDA CURSOR
         CPI 55
-        JNZ .check
-        CALL STARTPASS
-        LDA MODE
-        CPI 1
-        RNZ
-        LDA CURSOR
-        CPI 55
-        RZ
-.check: MOV C,A
+        JZ STARTPASS
+        MOV C,A
         MVI B,0
         LXI H,ALIENS
         DAD B
@@ -616,6 +931,7 @@ WAVEY:   DB 120, 136, 144, 152, 152, 160, 160, 160
 SHIELDX: DB 32, 77, 122, 167
 ROWGFX:  DW DOME, DOME, TWIN, TWIN, SPIRE
 NOTEBITS: DB 1, 2, 4, 8
+ROWPTS:  DB $10, $10, $20, $20, $30
 
         PUBLIC DOME, TWIN, SPIRE, SHIP, SHIPX, UFOGFX, UFOXGFX, AEXPLGFX
         PUBLIC SHIELD, PSHOT, BLASTGFX, BOMBGFX, FONT

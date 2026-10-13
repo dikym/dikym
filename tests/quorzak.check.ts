@@ -7,6 +7,9 @@ import { FRAME_S, W, litPixel, newGame, step } from "../src/game/machine.ts";
 import type { Game, Input } from "../src/game/machine.ts";
 
 const IDLE: Input = { left: false, right: false, fire: false };
+const LEFT: Input = { ...IDLE, left: true };
+const RIGHT: Input = { ...IDLE, right: true };
+const FIRE: Input = { ...IDLE, fire: true };
 const S = SYMBOLS;
 interface Quiet {
     bombs?: boolean;
@@ -100,6 +103,93 @@ assert.ok(ROM.length <= 0x2000);
     for (let i = 0; i < 120 && !g.over; i++) tick(g);
     assert.equal(g.over, true);
     assert.equal(g.memory[0x2000], 2);
+}
+
+// Puts the ship so its shot rises through column `col` (sprite centre is cell x + 7).
+const aim = (g: Game, col: number) => {
+    const px = () => g.memory[S.PX];
+    for (let i = 0; i < 400; i++) {
+        const target = g.memory[0x2005] + col * 16 + 1;
+        if (px() === target) return;
+        tick(g, px() < target ? RIGHT : LEFT);
+    }
+    assert.fail(`could not aim at column ${col}`);
+};
+// Fires once, waits for the shot to end, returns the points gained.
+const shoot = (g: Game) => {
+    for (let i = 0; i < 60 && g.memory[S.AEXT]; i++) tick(g);
+    const before = g.score;
+    tick(g, FIRE);
+    assert.equal(g.memory[S.SHOTON], 1, "shot fired");
+    for (let i = 0; i < 120 && g.memory[S.SHOTON]; i++) tick(g);
+    assert.equal(g.memory[S.SHOTON], 0, "shot ended");
+    return g.score - before;
+};
+
+// Ship moves and stops at the walls.
+{
+    const g = newGame();
+    run(g, 300, LEFT);
+    assert.equal(g.memory[S.PX], 16);
+    run(g, 300, RIGHT);
+    assert.equal(g.memory[S.PX], 185);
+}
+
+// The UI samples VRAM after each step, so every tick must finish drawing by then.
+{
+    const g = newGame();
+    for (let i = 0; i < 240; i++) {
+        tick(g, (i >> 5) & 1 ? LEFT : RIGHT, { bombs: false });
+        assert.ok(litPixel(g, g.memory[S.PX] + 6, 216), `ship drawn ${i}`);
+    }
+}
+
+// Column 2 (between shields) from the bottom: Dome, Dome, Twin, Twin, Spire.
+{
+    const g = newGame();
+    const gained = [];
+    for (let row = 0; row < 5; row++) {
+        aim(g, 2);
+        gained.push(shoot(g));
+    }
+    assert.deepEqual(gained, [10, 10, 20, 20, 30]);
+    assert.equal(g.score, 90);
+    assert.equal(g.memory[S.SHOTCNT], 5);
+    for (let row = 0; row < 5; row++)
+        assert.equal(
+            g.memory[0x2010 + row * 11 + 2],
+            0,
+            `row ${row} col 2 dead`
+        );
+}
+
+// A shot into a shield erodes it and scores nothing.
+{
+    const g = newGame();
+    const shieldPixels = () => {
+        let lit = 0;
+        for (let x = 32; x < 52; x++)
+            for (let y = 192; y < 204; y++) lit += Number(litPixel(g, x, y));
+        return lit;
+    };
+    const before = shieldPixels();
+    for (let i = 0; i < 400 && g.memory[S.PX] !== 30; i++)
+        tick(g, g.memory[S.PX] < 30 ? RIGHT : LEFT);
+    assert.equal(shoot(g), 0);
+    assert.ok(shieldPixels() < before, "shield lost pixels");
+}
+
+// The extra ship comes once, at 1,500.
+{
+    const g = newGame();
+    g.memory[0x2001] = 0x90;
+    g.memory[0x2002] = 0x14;
+    aim(g, 2);
+    assert.equal(shoot(g), 10);
+    assert.deepEqual([g.score, g.lives], [1500, 4]);
+    aim(g, 2);
+    shoot(g);
+    assert.deepEqual([g.score, g.lives], [1510, 4]);
 }
 
 console.log("quorzak: ok");
