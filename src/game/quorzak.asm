@@ -382,12 +382,240 @@ ALIENBLIT:
         POP B
         RET
 
-TICK:   RET
+TICK:   LDA MODE
+        CPI 1
+        RNZ
+        CALL PLAYER
+        LDA MODE
+        CPI 1
+        RNZ
+        CALL PLAYERSHOT
+        CALL ALIENSHOTS
+        CALL UFO
+        CALL MARCH
+        LDA MODE
+        CPI 1
+        RNZ
+        JMP SOUND
+
+PLAYER:     RET         ; Task 4
+PLAYERSHOT: RET         ; Task 4
+ALIENSHOTS: RET         ; Task 5
+UFO:        RET         ; Task 6
+
+; Moves the next live alien one step; a new pass starts when all have moved.
+MARCH:
+.find:  LDA CURSOR
+        CPI 55
+        JNZ .check
+        CALL STARTPASS
+        LDA MODE
+        CPI 1
+        RNZ
+        LDA CURSOR
+        CPI 55
+        RZ
+.check: MOV C,A
+        MVI B,0
+        LXI H,ALIENS
+        DAD B
+        MOV A,M
+        ORA A
+        JNZ .move
+        INR C
+        MOV A,C
+        STA CURSOR
+        JMP .find
+.move:  MVI A,1
+        STA BLITOP
+        LDA FRAME
+        XRI 1
+        CALL ALIENBLIT
+        MOV A,C
+        INR A
+        STA CURSOR
+        CALL ALIENXY
+        MOV A,E
+        CPI 185
+        JC .draw
+        PUSH B          ; low enough to overlap a shield: erase what it covers
+        MVI A,1
+        STA BLITOP
+        LXI H,MASK12
+        MVI B,12
+        INR D
+        INR D
+        CALL BLIT
+        POP B
+.draw:  XRA A
+        STA BLITOP
+        LDA FRAME
+        JMP ALIENBLIT
+
+; Starts a rack pass: wave clear, invasion, edge turn, step, frame and note.
+STARTPASS:
+        CALL SCAN
+        LDA LIVECNT
+        ORA A
+        JZ NEXTWAVE
+        MOV A,D
+        ADD A
+        ADD A
+        ADD A
+        ADD A
+        MOV E,A
+        LDA GRIDY
+        SUB E
+        CPI 208
+        JNC GAMEOVER
+        LDA DIR
+        ORA A
+        JNZ .left
+        MOV A,C
+        ADD A
+        ADD A
+        ADD A
+        ADD A
+        MOV E,A
+        LDA GRIDX
+        ADD E
+        ADI 14
+        CPI 214
+        JNC .down
+        LDA LIVECNT
+        CPI 1
+        MVI A,2
+        JNZ .setx
+        MVI A,3         ; the last alien runs faster to the right
+        JMP .setx
+.left:  MOV A,B
+        ADD A
+        ADD A
+        ADD A
+        ADD A
+        MOV E,A
+        LDA GRIDX
+        ADD E
+        ADI 2
+        CPI 11
+        JC .down
+        MVI A,$FE
+.setx:  STA PDX
+        XRA A
+        STA PDY
+        JMP .step
+.down:  XRA A
+        STA PDX
+        MVI A,8
+        STA PDY
+        LDA DIR
+        XRI 1
+        STA DIR
+.step:  LDA PDX
+        MOV E,A
+        LDA GRIDX
+        ADD E
+        STA GRIDX
+        LDA PDY
+        MOV E,A
+        LDA GRIDY
+        ADD E
+        STA GRIDY
+        LDA FRAME
+        XRI 1
+        STA FRAME
+        XRA A
+        STA CURSOR
+        LDA NOTE
+        MOV E,A
+        INR A
+        ANI 3
+        STA NOTE
+        MVI D,0
+        LXI H,NOTEBITS
+        DAD D
+        LDA PULSEB
+        ORA M
+        STA PULSEB
+        RET
+
+; Out: LIVECNT, B = leftmost live column, C = rightmost, D = lowest live row.
+SCAN:   LXI H,0
+        SHLD TMPA       ; TMPA = row, TMPA+1 = column
+        MVI B,10
+        MVI C,0
+        MVI D,4
+        MVI E,0
+        LXI H,ALIENS
+.loop:  MOV A,M
+        ORA A
+        JZ .next
+        INR E
+        LDA TMPA+1
+        CMP B
+        JNC .nomin
+        MOV B,A
+.nomin: CMP C
+        JC .nomax
+        MOV C,A
+.nomax: LDA TMPA
+        CMP D
+        JNC .next
+        MOV D,A
+.next:  INX H
+        LDA TMPA+1
+        INR A
+        CPI 11
+        JNZ .same
+        LDA TMPA
+        INR A
+        STA TMPA
+        XRA A
+.same:  STA TMPA+1
+        MOV A,L
+        CPI LOW(ALIENS+55)
+        JNZ .loop
+        MOV A,E
+        STA LIVECNT
+        RET
+
+NEXTWAVE:
+        LDA WAVE
+        INR A
+        STA WAVE
+        JMP NEWWAVE
+
+GAMEOVER:
+        MVI A,2
+        STA MODE
+        XRA A
+        STA UFOPTS
+        OUT SOUNDB
+        MVI A,$20
+        OUT SOUNDA
+        RET
+
+; Port 3: enable, UFO loop and this tick's pulses; port 5: this tick's pulses.
+SOUND:  LDA UFOON
+        CPI 1
+        MVI A,$20
+        JNZ .a
+        MVI A,$21
+.a:     LXI H,PULSEA
+        ORA M
+        OUT SOUNDA
+        MVI M,0
+        LDA PULSEB
+        OUT SOUNDB
+        XRA A
+        STA PULSEB
+        RET
 
 ; ---- Data
 WAVEY:   DB 120, 136, 144, 152, 152, 160, 160, 160
 SHIELDX: DB 32, 77, 122, 167
 ROWGFX:  DW DOME, DOME, TWIN, TWIN, SPIRE
+NOTEBITS: DB 1, 2, 4, 8
 
         PUBLIC DOME, TWIN, SPIRE, SHIP, SHIPX, UFOGFX, UFOXGFX, AEXPLGFX
         PUBLIC SHIELD, PSHOT, BLASTGFX, BOMBGFX, FONT
