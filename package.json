@@ -6,6 +6,7 @@
     "scripts": {
         "dev": "vite",
         "build": "tsc -b && vite build",
+        "rom": "node --experimental-strip-types tools/asm8080.ts src/game/quorzak.asm src/game/rom.ts",
         "lint": "eslint .",
         "preview": "vite preview",
         "format": "prettier --write .",
