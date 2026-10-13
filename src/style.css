@@ -642,24 +642,19 @@
     top: calc(24 * 2px * 7 / 6);
     font-variant-numeric: tabular-nums;
 }
-/* Ink starts one column into each ROM cell, like the bottom row. */
-.arcade-scoreboard > :nth-child(1) .arcade-label {
-    left: 18px;
+/* Three centred columns, each label over its value. */
+.arcade-scoreboard .arcade-label,
+.arcade-scoreboard b {
+    translate: -50% 0;
 }
-.arcade-scoreboard > :nth-child(1) b {
-    left: 50px;
+.arcade-scoreboard > :nth-child(1) > * {
+    left: calc(100% / 6);
 }
-.arcade-scoreboard > :nth-child(2) .arcade-label {
-    left: 162px;
+.arcade-scoreboard > :nth-child(2) > * {
+    left: 50%;
 }
-.arcade-scoreboard > :nth-child(2) b {
-    left: 178px;
-}
-.arcade-scoreboard > :nth-child(3) .arcade-label {
-    left: 306px;
-}
-.arcade-scoreboard > :nth-child(3) b {
-    left: 338px;
+.arcade-scoreboard > :nth-child(3) > * {
+    left: calc(100% * 5 / 6);
 }
 /* Other arcade-font text keeps the ROM's 7/6 pixel aspect too. */
 .arcade-stretch {

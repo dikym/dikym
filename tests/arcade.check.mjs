@@ -1054,8 +1054,8 @@ try {
             const ink = node => { const range = document.createRange(); range.selectNodeContents(node); return range.getBoundingClientRect(); };
             return {left: field.left, top: field.top, column: field.width / 224,
                 board: document.querySelector('.arcade-scoreboard').getBoundingClientRect().top,
-                labels: [...document.querySelectorAll('.arcade-label')].map(node => { const r = ink(node); return [r.left, r.top]; }),
-                scores: [...document.querySelectorAll('.arcade-scoreboard b')].filter(node => node.textContent).map(node => { const r = ink(node); return [r.left, r.top]; }),
+                labels: [...document.querySelectorAll('.arcade-label')].map(node => { const r = ink(node); return [r.left + r.width / 2, r.top]; }),
+                scores: [...document.querySelectorAll('.arcade-scoreboard b')].filter(node => node.textContent).map(node => { const r = ink(node); return [r.left + r.width / 2, r.top]; }),
                 fonts: [...document.querySelectorAll('.arcade-label, .arcade-scoreboard b')].map(node => getComputedStyle(node).fontSize)};
         })()`);
         const boardRow = (board.column * 7) / 6;
@@ -1065,11 +1065,12 @@ try {
             board.top - 32 * boardRow,
             "scoreboard spans ROM rows 0–31"
         );
-        for (const [i, x] of [8, 80, 152].entries()) {
+        // Three centred columns, each label over its value.
+        for (const [i, x] of [224 / 6, 112, (224 * 5) / 6].entries()) {
             near(
                 board.labels[i][0],
-                board.left + (x + 1) * board.column,
-                `label ${i} ink at ROM x=${x + 1}`
+                board.left + x * board.column,
+                `label ${i} centred at x=${x}`
             );
             near(
                 board.labels[i][1],
@@ -1077,11 +1078,11 @@ try {
                 `label ${i} cell at ROM y=8`
             );
         }
-        for (const [i, x] of [24, 88].entries()) {
+        for (const [i, x] of [224 / 6, 112, (224 * 5) / 6].entries()) {
             near(
                 board.scores[i][0],
-                board.left + (x + 1) * board.column,
-                `score ${i} ink at ROM x=${x + 1}`
+                board.left + x * board.column,
+                `score ${i} centred at x=${x}`
             );
             near(
                 board.scores[i][1],

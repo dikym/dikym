@@ -868,7 +868,7 @@ const Quorzak: React.FC<QuorzakProps> = ({
                                         <div className="arcade-scoreboard">
                                             <div>
                                                 <span className="arcade-label">
-                                                    Score&lt;1&gt;
+                                                    Score
                                                 </span>
                                                 <b>
                                                     {String(hud.score).padStart(
@@ -890,9 +890,14 @@ const Quorzak: React.FC<QuorzakProps> = ({
                                             </div>
                                             <div>
                                                 <span className="arcade-label">
-                                                    Score&lt;2&gt;
+                                                    Wave
                                                 </span>
-                                                <b>{""}</b>
+                                                <b>
+                                                    {String(hud.wave).padStart(
+                                                        2,
+                                                        "0"
+                                                    )}
+                                                </b>
                                             </div>
                                         </div>
                                         <div className="arcade-playfield">
@@ -1037,7 +1042,7 @@ const Quorzak: React.FC<QuorzakProps> = ({
                                                           : "Ready"
                                                 }
                                             >
-                                                Credit 00
+                                                Free play
                                             </span>
                                         </div>
                                     </div>
