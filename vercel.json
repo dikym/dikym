@@ -2,8 +2,8 @@
     "rewrites": [
         {
             "source": "/",
-            "has": [{ "type": "host", "value": "space-invaders.dikym.me" }],
-            "destination": "/space-invaders/index.html"
+            "has": [{ "type": "host", "value": "quorzak.dikym.me" }],
+            "destination": "/quorzak/index.html"
         }
     ]
 }

@@ -1,21 +1,19 @@
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
-import CrabSprite from "../arcade/CrabSprite";
+import AlienSprite from "../arcade/AlienSprite";
 import arcadeUrl from "virtual:arcade-url";
 import {
     captureScrollPosition,
     scrollPositionTop,
 } from "../../hooks/usePreserveScrollPosition";
 
-let preparation: Promise<typeof import("../arcade/SpaceInvaders")> | null =
-    null;
-let preparedComponent: typeof import("../arcade/SpaceInvaders").default | null =
-    null;
+let preparation: Promise<typeof import("../arcade/Quorzak")> | null = null;
+let preparedComponent: typeof import("../arcade/Quorzak").default | null = null;
 let failedAttempts = 0;
 const loadGame = () =>
     (preparation ??= (
         failedAttempts
             ? import(/* @vite-ignore */ `${arcadeUrl}?retry=${failedAttempts}`)
-            : import("../arcade/SpaceInvaders")
+            : import("../arcade/Quorzak")
     ).then(
         module => {
             preparedComponent = module.default;
@@ -30,7 +28,7 @@ const loadGame = () =>
 const prepare = () => {
     void loadGame().catch(error => console.error("Arcade preload:", error));
     void document.fonts
-        .load('14px "Space Invaders"')
+        .load('14px "Quorzak"')
         .catch(error => console.error("Arcade font preload:", error));
 };
 
@@ -157,7 +155,7 @@ const ArcadeSection = () => {
                     tabIndex={open ? -1 : 0}
                     onClick={requestOpen}
                 >
-                    <CrabSprite />
+                    <AlienSprite />
                 </button>
                 {pending && (
                     <span className="sr-only" role="status">

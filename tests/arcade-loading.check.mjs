@@ -80,7 +80,7 @@ const navigate = async name => {
 };
 const holdModule = () =>
     send("Fetch.enable", {
-        patterns: [{ urlPattern: "*SpaceInvaders*", requestStage: "Request" }],
+        patterns: [{ urlPattern: "*Quorzak*", requestStage: "Request" }],
     });
 const releaseModule = () =>
     send("Fetch.continueRequest", { requestId: requests[0].requestId });
@@ -136,9 +136,7 @@ try {
         true,
         "preload never mounts a panel or audio"
     );
-    await waitFor(() =>
-        evaluate(`document.fonts.check('14px "Space Invaders"')`)
-    );
+    await waitFor(() => evaluate(`document.fonts.check('14px "Quorzak"')`));
     await evaluate(
         "document.querySelector('.arcade-trigger').focus(); for (let i = 0; i < 5; i++) document.querySelector('.arcade-trigger').click()"
     );
@@ -204,7 +202,7 @@ try {
     await releaseModule();
     await waitFor(() =>
         evaluate(
-            "performance.getEntriesByType('resource').some(entry => /SpaceInvaders/.test(entry.name) && entry.responseEnd > 0)"
+            "performance.getEntriesByType('resource').some(entry => /Quorzak/.test(entry.name) && entry.responseEnd > 0)"
         )
     );
     await evaluate("new Promise(resolve => setTimeout(resolve, 100))");
@@ -335,7 +333,7 @@ try {
         );
         await waitFor(() =>
             evaluate(
-                "performance.getEntriesByType('resource').some(entry => /SpaceInvaders/.test(entry.name) && entry.responseEnd > 0)"
+                "performance.getEntriesByType('resource').some(entry => /Quorzak/.test(entry.name) && entry.responseEnd > 0)"
             )
         );
         if (closing) {

@@ -1,5 +1,5 @@
 // Run Vite and Chrome with --remote-debugging-port=9222, then:
-// node tests/space-invaders-page.check.mjs http://127.0.0.1:5173
+// node tests/quorzak-page.check.mjs http://127.0.0.1:5173
 import assert from "node:assert/strict";
 
 // Arcade-font text must keep the ROM's 7/6 pixel aspect; descriptions and shortcuts are site UI.
@@ -11,7 +11,7 @@ const STRETCH_AUDIT = `(() => {
         const el = node.parentElement;
         if (!node.textContent.trim() || !el.getClientRects().length) continue;
         if (el.closest('.arcade-keyboard-hint, .sr-only')) continue;
-        if (!getComputedStyle(el).fontFamily.includes('Space Invaders')) continue;
+        if (!getComputedStyle(el).fontFamily.includes('Quorzak')) continue;
         let stretched = false;
         for (let e = el; e && e !== section; e = e.parentElement) {
             const y = Number(getComputedStyle(e).scale.split(' ')[1]);
@@ -23,7 +23,7 @@ const STRETCH_AUDIT = `(() => {
 })()`;
 
 const site = (process.argv[2] || "http://127.0.0.1:5173").replace(/\/$/, "");
-const page = `${site}/space-invaders/`;
+const page = `${site}/quorzak/`;
 const tabs = await fetch("http://127.0.0.1:9222/json").then(r => r.json());
 const socket = new WebSocket(
     tabs.find(t => t.type === "page").webSocketDebuggerUrl
@@ -109,19 +109,14 @@ try {
         source: `(() => {
             const hash = new URLSearchParams(location.hash.slice(1));
             if (hash.has("random")) Math.random = () => Number(hash.get("random"));
-            // Counts audio starts and exposes gain nodes; #holdaudio delays the WAV downloads.
+            // Counts audio starts and exposes gain nodes; #holdaudio holds AudioContext.resume.
             window.resumes = 0;
             const resume = AudioContext.prototype.resume;
-            AudioContext.prototype.resume = function () { window.resumes++; return resume.call(this); };
+            let held = Promise.resolve();
+            if (hash.has("holdaudio")) held = new Promise(resolve => { window.releaseAudio = resolve; });
+            AudioContext.prototype.resume = function () { window.resumes++; return held.then(() => resume.call(this)); };
             const createGain = AudioContext.prototype.createGain;
             AudioContext.prototype.createGain = function () { const gain = createGain.call(this); (window.gains ??= []).push(gain); return gain; };
-            if (hash.has("holdaudio")) {
-                const fetch = window.fetch;
-                let release;
-                const held = new Promise(resolve => { release = resolve; });
-                window.releaseAudio = release;
-                window.fetch = (url, ...rest) => String(url).endsWith(".wav") ? held.then(() => fetch(url, ...rest)) : fetch(url, ...rest);
-            }
             if (!hash.has("clock")) return;
             const callbacks = new Map();
             let id = 0;
@@ -187,7 +182,7 @@ try {
     const credit = await evaluate(
         "document.querySelector('.arcade-credit').textContent"
     );
-    assert.match(credit, /Taito/);
+    assert.match(credit, /Quorzak/);
     assert.match(credit, /Diky/);
     assert.equal(
         await evaluate("document.querySelector('.arcade-credit a').href"),
@@ -200,7 +195,7 @@ try {
     );
     assert.match(
         await evaluate("document.querySelector('.arcade-notice').textContent"),
-        /not affiliated with or endorsed by Taito/
+        /original game by Diky/
     );
     await key("Enter");
     await new Promise(resolve => setTimeout(resolve, 100));
@@ -242,10 +237,8 @@ try {
     );
     const text = () =>
         evaluate(
-            "[...document.querySelectorAll('.arcade-attract-text')].map(e => (e.classList.contains('arcade-attract-flipped') ? '^' : '') + e.textContent).filter(Boolean)"
+            "[...document.querySelectorAll('.arcade-attract-text')].map(e => e.textContent).filter(Boolean)"
         );
-    const carrier = () =>
-        evaluate("!!document.querySelector('.arcade-attract-carrier')");
     const advance = frames => evaluate(`advance(${frames})`);
     const playfieldPoint = () =>
         evaluate(
@@ -260,14 +253,14 @@ try {
         });
     };
     const table = [
-        "*SCORE ADVANCE TABLE*",
+        "POINT TABLE",
         "=? MYSTERY",
         "=30 POINTS",
         "=20 POINTS",
         "=10 POINTS",
     ];
 
-    // Upside-down variant, frame by frame against the ROM timeline.
+    // Title screen, frame by frame against its timeline.
     await open("#random=0.1&clock");
     assert.equal(
         await evaluate(
@@ -276,42 +269,32 @@ try {
         "hidden",
         "title screen shows only CREDIT"
     );
-    await advance(63);
+    await advance(7);
     assert.deepEqual(await text(), []);
     await advance(1);
-    assert.deepEqual(await text(), ["P"]);
-    await advance(18);
-    assert.deepEqual(await text(), ["PLA", "^Y"]);
-    await advance(6);
-    assert.deepEqual(await text(), ["PLA", "S", "^Y"]);
-    await advance(388);
-    assert.deepEqual(await text(), ["PLA", "SPACE  INVADERS", ...table, "^Y"]);
+    assert.deepEqual(await text(), ["Q"]);
+    await advance(36);
+    assert.deepEqual(await text(), ["QUORZAK"]);
+    await advance(55);
+    assert.deepEqual(await text(), ["QUORZAK"]);
     assert.equal(
         await evaluate(
-            "document.querySelectorAll('.arcade-attract-sprite:not(.arcade-attract-carrier)').length"
+            "document.querySelectorAll('.arcade-attract-sprite').length"
+        ),
+        0
+    );
+    await advance(1);
+    assert.deepEqual(await text(), ["QUORZAK", "POINT TABLE"]);
+    assert.equal(
+        await evaluate(
+            "document.querySelectorAll('.arcade-attract-sprite').length"
         ),
         4
     );
-    await advance(224);
-    assert.ok(await carrier(), "alien approaches at frame 700");
-    await advance(100);
-    assert.ok(await carrier(), "alien pulls the Y at frame 800");
-    assert.ok(
-        !(await text()).some(t => t === "Y" || t === "^Y"),
-        "the ROM's pull image draws the Y, so no text Y doubles it"
-    );
-    await advance(241);
-    assert.equal(await carrier(), false, "alien gone at frame 1041");
-    assert.deepEqual(await text(), ["PLA", "SPACE  INVADERS", ...table, "Y"]);
-    assert.ok(
-        Math.abs(
-            (await evaluate(
-                "parseFloat([...document.querySelectorAll('.arcade-attract-text')].at(-1).style.left)"
-            )) -
-                (120 / 224) * 100
-        ) < 1e-3,
-        "final Y one column left of a typed Y"
-    );
+    await advance(10);
+    assert.deepEqual(await text(), ["QUORZAK", "POINT TABLE", "="]);
+    await advance(252);
+    assert.deepEqual(await text(), ["QUORZAK", ...table]);
     assert.equal(
         await evaluate("/INSERT|COIN/.test(document.body.textContent)"),
         false
@@ -433,20 +416,18 @@ try {
     }
     await viewport(1280, 900);
 
-    // Normal variant: PLAY typed with a correct Y, no carrier.
+    // The finished title screen keeps the arcade text stretch.
     await open("#random=0.9&clock");
-    await advance(476);
-    assert.deepEqual(await text(), ["PLA", "SPACE  INVADERS", ...table, "Y"]);
+    await advance(362);
+    assert.deepEqual(await text(), ["QUORZAK", ...table]);
     assert.deepEqual(await evaluate(STRETCH_AUDIT), [], "title text keeps 7/6");
-    await advance(400);
-    assert.equal(await carrier(), false);
 
     // Font assumption behind the one-column text inset: ink starts at the box edge.
     assert.ok(
         Math.abs(
             (await evaluate(`(() => {
                 const ctx = document.createElement('canvas').getContext('2d');
-                ctx.font = '16px "Space Invaders"';
+                ctx.font = '16px "Quorzak"';
                 return ctx.measureText('Y').actualBoundingBoxLeft;
             })()`)) - 0
         ) < 0.5
@@ -541,7 +522,7 @@ try {
         "unmute restores sound"
     );
 
-    // Enter, then a tap while the audio still downloads, start one game, not two.
+    // Enter, then a tap while the audio still starts, start one game, not two.
     await open("#random=0.1&clock&holdaudio");
     await evaluate("document.querySelector('.arcade-sound').click()");
     await evaluate("document.querySelector('.arcade-section').focus()");
@@ -560,7 +541,8 @@ try {
     await key("Enter");
     await wait("!document.querySelector('.arcade-attract')");
     const imported = await send("Runtime.evaluate", {
-        expression: "import('/src/game/invaders.ts').then(m => m.step)",
+        expression:
+            "import(performance.getEntriesByType('resource').find(entry => entry.name.includes('/src/game/machine.ts')).name).then(m => m.step)",
         awaitPromise: true,
     });
     if (imported.exceptionDetails)
@@ -577,8 +559,7 @@ try {
         const frame = (await stopped).callFrames[0];
         await send("Debugger.evaluateOnCallFrame", {
             callFrameId: frame.callFrameId,
-            expression:
-                "g.memory[0x20e7]=0; g.memory[0x21ff]=0; g.memory[0x2015]=0;",
+            expression: "g.memory[0x2000]=2; g.memory[0x2003]=0;",
         });
         await send("Debugger.removeBreakpoint", {
             breakpointId: breakpoint.breakpointId,
@@ -605,8 +586,8 @@ try {
         })()`);
         assert.equal(over.text, "GAME OVER");
         assert.ok(
-            Math.abs(over.left - 73) < 0.5,
-            `GAME OVER ink at x=73: ${over.left}`
+            Math.abs(over.left - 77) < 0.5,
+            `GAME OVER ink at x=77: ${over.left}`
         );
         assert.ok(
             Math.abs(over.top - 56) < 0.5,
@@ -648,7 +629,7 @@ try {
         await evaluate(`(() => {
             const field = document.querySelector('.arcade-playfield').getBoundingClientRect();
             const play = document.querySelector('.arcade-attract-text').getBoundingClientRect();
-            return Math.abs((play.left - field.left) / field.width - 97 / 224) < 0.002;
+            return Math.abs((play.left - field.left) / field.width - 85 / 224) < 0.002;
         })()`)
     );
 
@@ -692,8 +673,7 @@ try {
     });
     await open("#random=0.1&clock");
     await advance(1);
-    assert.deepEqual(await text(), ["PLA", "SPACE  INVADERS", ...table, "Y"]);
-    assert.equal(await carrier(), false);
+    assert.deepEqual(await text(), ["QUORZAK", ...table]);
     await send("Emulation.setEmulatedMedia", { features: [] });
 
     // Enter starts and hands keyboard focus to the game.
@@ -702,7 +682,7 @@ try {
     await wait(
         "!document.querySelector('.arcade-attract') && document.activeElement?.tagName === 'CANVAS'"
     );
-    console.log("space-invaders page: ok");
+    console.log("quorzak page: ok");
 } finally {
     socket.close();
 }

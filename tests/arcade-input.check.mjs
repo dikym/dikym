@@ -89,7 +89,8 @@ try {
     );
     await send("Debugger.enable");
     const imported = await send("Runtime.evaluate", {
-        expression: "import('/src/game/invaders.ts').then(m => m.step)",
+        expression:
+            "import(performance.getEntriesByType('resource').find(entry => entry.name.includes('/src/game/machine.ts')).name).then(m => m.step)",
         awaitPromise: true,
     });
     const breakpoint = await send("Debugger.setBreakpointOnFunctionCall", {
@@ -280,7 +281,7 @@ try {
     await key("keyDown", "KeyA");
     await controls(40);
     await evaluate(
-        "auditGame.elapsed=0; auditGame.memory[0x20e7]=0; auditGame.memory[0x21ff]=0; auditGame.memory[0x2015]=0; tickInput()"
+        "auditGame.elapsed=0; auditGame.memory[0x2000]=2; auditGame.memory[0x2003]=0; tickInput()"
     );
     await wait("!!document.querySelector('.arcade-game-over')");
     await evaluate(

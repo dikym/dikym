@@ -6,7 +6,7 @@ import {
     useState,
 } from "react";
 import AttractScreen, { GameOverText } from "./AttractScreen";
-import CrabSprite from "./CrabSprite";
+import AlienSprite from "./AlienSprite";
 import { createArcadeAudio } from "../../game/audio";
 import { ALIEN_SPRITES, PLAYER, SCORE_GLYPHS } from "../../game/sprites";
 import {
@@ -20,8 +20,8 @@ import {
     pixelColor,
     newGame,
     step,
-} from "../../game/invaders";
-import type { Game, Input, Invader } from "../../game/invaders";
+} from "../../game/machine";
+import type { Game, Input, Invader } from "../../game/machine";
 import {
     captureScrollPosition,
     fitArcadeToViewport,
@@ -45,7 +45,7 @@ const drawSprite = (
 
 const readBest = (): number => {
     try {
-        return Number(localStorage.getItem("invaders-best")) || 0;
+        return Number(localStorage.getItem("quorzak-best")) || 0;
     } catch {
         return 0;
     }
@@ -61,7 +61,7 @@ const KEYS: Record<string, keyof Input> = {
     KeyW: "fire",
 };
 
-interface SpaceInvadersProps {
+interface QuorzakProps {
     // All absent on the standalone subdomain page.
     onClose?: (finished: boolean) => void;
     origin?: DOMRect;
@@ -75,7 +75,7 @@ interface Hud {
     over: boolean;
 }
 
-const SpaceInvaders: React.FC<SpaceInvadersProps> = ({
+const Quorzak: React.FC<QuorzakProps> = ({
     onClose,
     origin,
     openingScroll,
@@ -310,7 +310,7 @@ const SpaceInvaders: React.FC<SpaceInvadersProps> = ({
         const scaleY = scale * PIXEL_ASPECT;
         const targetX = canvas.x + (invader.x + 3) * scale;
         const targetY = canvas.y + (invader.y - FIELD_TOP) * scaleY;
-        const formation = new DOMRect(targetX, targetY, 11 * scale, 8 * scaleY);
+        const formation = new DOMRect(targetX, targetY, 9 * scale, 8 * scaleY);
         const triggerAlien =
             section.parentElement!.querySelector<SVGSVGElement>(
                 ".arcade-trigger svg"
@@ -443,7 +443,7 @@ const SpaceInvaders: React.FC<SpaceInvadersProps> = ({
                       field.y +
                           (((invader.y - FIELD_TOP) * field.width) / W) *
                               PIXEL_ASPECT,
-                      (11 * field.width) / W,
+                      (9 * field.width) / W,
                       ((8 * field.width) / W) * PIXEL_ASPECT
                   );
             const color = getComputedStyle(alien);
@@ -712,7 +712,7 @@ const SpaceInvaders: React.FC<SpaceInvadersProps> = ({
         if (hud.score <= best) return;
         setBest(hud.score);
         try {
-            localStorage.setItem("invaders-best", String(hud.score));
+            localStorage.setItem("quorzak-best", String(hud.score));
         } catch {
             // storage blocked: best score lasts for this visit only
         }
@@ -769,7 +769,7 @@ const SpaceInvaders: React.FC<SpaceInvadersProps> = ({
             <section
                 ref={sectionRef}
                 tabIndex={-1}
-                aria-labelledby="invaders-title"
+                aria-labelledby="quorzak-title"
                 // Closing parks focus on Close; setFocus keeps the state it had before.
                 onFocus={e =>
                     setFocus(
@@ -808,7 +808,7 @@ const SpaceInvaders: React.FC<SpaceInvadersProps> = ({
                     <div className="arcade-panel">
                         <div className="arcade-cabinet">
                             <header className="arcade-marquee">
-                                <h2 id="invaders-title" className="sr-only">
+                                <h2 id="quorzak-title" className="sr-only">
                                     Arcade
                                 </h2>
                                 <button
@@ -1183,8 +1183,7 @@ const SpaceInvaders: React.FC<SpaceInvadersProps> = ({
                                     </div>
                                     {!onClose && (
                                         <p className="arcade-credit">
-                                            Space Invaders © 1978 Taito
-                                            Corporation · Implemented by{" "}
+                                            Quorzak · Made by{" "}
                                             <a href="https://dikym.me/">Diky</a>{" "}
                                             ·{" "}
                                             <button
@@ -1209,7 +1208,7 @@ const SpaceInvaders: React.FC<SpaceInvadersProps> = ({
                     </div>
                 </div>
                 {(!arrived || closing) && (
-                    <CrabSprite
+                    <AlienSprite
                         ref={alienRef}
                         className="arcade-arriving-alien"
                     />
@@ -1229,20 +1228,15 @@ const SpaceInvaders: React.FC<SpaceInvadersProps> = ({
                 >
                     <h2 id="arcade-notice-title">About this page</h2>
                     <p>
-                        Space Invaders is © 1978 Taito Corporation. The game,
-                        its name, characters and artwork belong to Taito.
-                    </p>
-                    <p>
-                        This page is a non-commercial fan implementation by{" "}
-                        <a href="https://dikym.me/">Diky</a>. It runs the
-                        original 1978 arcade program in a browser-based Intel
-                        8080 emulator. It is not affiliated with or endorsed by
-                        Taito, and no ownership of the game is claimed.
+                        Quorzak is an original game by{" "}
+                        <a href="https://dikym.me/">Diky</a>, written in Intel
+                        8080 assembly and run by a browser-based 8080 emulator.
                     </p>
                     <p>
                         Third-party licenses:{" "}
                         <a href="/licenses/8080js.txt">8080js</a>,{" "}
-                        <a href="/licenses/space-invaders-audio.txt">sounds</a>,{" "}
+                        <a href="/fonts/quorzak/license.txt">font</a> (“Space
+                        Invaders (extended)” by Patrick H. Lauke, CC BY 3.0),{" "}
                         <a href="/licenses/tabler-icons.txt">icons</a>.
                     </p>
                     <form method="dialog">
@@ -1254,4 +1248,4 @@ const SpaceInvaders: React.FC<SpaceInvadersProps> = ({
     );
 };
 
-export default SpaceInvaders;
+export default Quorzak;

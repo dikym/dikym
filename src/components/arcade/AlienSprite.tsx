@@ -1,7 +1,7 @@
 import type { Ref } from "react";
-import { CRAB } from "../../game/sprites";
+import { TWIN } from "../../game/sprites";
 
-const CrabSprite = ({
+const AlienSprite = ({
     className,
     ref,
 }: {
@@ -11,13 +11,13 @@ const CrabSprite = ({
     <svg
         ref={ref}
         className={className}
-        viewBox="0 0 11 8"
+        viewBox="0 0 9 8"
         preserveAspectRatio="none"
         fill="currentColor"
         shapeRendering="crispEdges"
         aria-hidden="true"
     >
-        {CRAB.map((rows, frame) => (
+        {TWIN.map((rows, frame) => (
             <g key={frame} className="crab-frame">
                 {rows.flatMap((row, y) =>
                     [...row].map((pixel, x) =>
@@ -37,4 +37,4 @@ const CrabSprite = ({
     </svg>
 );
 
-export default CrabSprite;
+export default AlienSprite;

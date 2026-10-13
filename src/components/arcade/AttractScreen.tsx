@@ -1,13 +1,12 @@
 import { useEffect, useState } from "react";
-import { ATTRACT_END, GAME_OVER, attractState } from "../../game/attract";
 import {
     FIELD_BOTTOM,
     FIELD_TOP,
     FRAME_S,
     W,
     pixelColor,
-} from "../../game/invaders";
-import { ATTRACT_ICONS, CARRIER } from "../../game/sprites";
+} from "../../game/machine";
+import { ALIEN_SPRITES, UFO } from "../../game/sprites";
 
 // Percentages of the playfield, which shows screen rows 32–239.
 const place = (x: number, y: number) => ({
@@ -93,57 +92,60 @@ const PixelSprite: React.FC<PixelSpriteProps> = ({
     </svg>
 );
 
-const AttractScreen: React.FC = () => {
-    const [upsideDown] = useState(() => Math.random() < 0.5);
-    const frame = useRomFrames(
-        ATTRACT_END[upsideDown ? "upsideDown" : "normal"]
-    );
+const TYPE_FRAMES = 6;
+// Quorzak title screen, in playfield coordinates; frames count from mount.
+const LINES = [
+    { text: "QUORZAK", x: 84, y: 64, start: 8, step: TYPE_FRAMES },
+    { text: "POINT TABLE", x: 68, y: 112, start: 100, step: 0 },
+    { text: "=? MYSTERY", x: 80, y: 136, start: 110, step: TYPE_FRAMES },
+    { text: "=30 POINTS", x: 80, y: 152, start: 176, step: TYPE_FRAMES },
+    { text: "=20 POINTS", x: 80, y: 168, start: 242, step: TYPE_FRAMES },
+    { text: "=10 POINTS", x: 80, y: 184, start: 308, step: TYPE_FRAMES },
+];
+const ICONS_AT = 100;
+const ICONS = [
+    UFO,
+    ALIEN_SPRITES[0][0],
+    ALIEN_SPRITES[1][0],
+    ALIEN_SPRITES[2][0],
+].map((rows, i) => ({ rows, x: 60, y: 136 + i * 16 }));
+const END = 308 + 9 * TYPE_FRAMES;
+const GAME_OVER = { text: "GAME OVER", x: 76, y: 56 };
 
-    const state = attractState(frame, upsideDown);
+const AttractScreen: React.FC = () => {
+    const frame = useRomFrames(END);
     return (
         <div className="arcade-attract">
             <p className="sr-only">
-                Play Space Invaders. Score advance table: mystery ship, 30
-                points, 20 points, 10 points.
+                Play Quorzak. Point table: mystery ship, 30 points, 20 points,
+                10 points.
             </p>
             <div aria-hidden="true">
-                {state.lines.map(line => (
+                {LINES.map(({ text, x, y, start, step }) => (
                     <span
-                        key={line.text}
+                        key={text}
                         className="arcade-attract-text"
-                        style={textStyle(line.x, line.y)}
+                        style={textStyle(x, y)}
                     >
-                        {line.text.slice(0, line.visible)}
+                        {frame < start
+                            ? ""
+                            : step
+                              ? text.slice(
+                                    0,
+                                    Math.floor((frame - start) / step) + 1
+                                )
+                              : text}
                     </span>
                 ))}
-                {state.y && (
-                    <span
-                        className={
-                            state.y.flipped
-                                ? "arcade-attract-text arcade-attract-flipped"
-                                : "arcade-attract-text"
-                        }
-                        style={textStyle(state.y.x, state.y.y)}
-                    >
-                        Y
-                    </span>
-                )}
-                {state.icons.map((icon, i) => (
-                    <PixelSprite
-                        key={i}
-                        rows={ATTRACT_ICONS[i]}
-                        x={icon.x}
-                        y={icon.y}
-                    />
-                ))}
-                {state.carrier && (
-                    <PixelSprite
-                        rows={CARRIER[state.carrier.phase][state.carrier.image]}
-                        x={state.carrier.x}
-                        y={state.carrier.y}
-                        className="arcade-attract-carrier"
-                    />
-                )}
+                {frame >= ICONS_AT &&
+                    ICONS.map((icon, i) => (
+                        <PixelSprite
+                            key={i}
+                            rows={icon.rows}
+                            x={icon.x}
+                            y={icon.y}
+                        />
+                    ))}
             </div>
         </div>
     );
@@ -152,14 +154,14 @@ const AttractScreen: React.FC = () => {
 export default AttractScreen;
 
 export const GameOverText: React.FC = () => {
-    const { text, x, y, step } = GAME_OVER;
-    const frame = useRomFrames((text.length - 1) * step);
+    const { text, x, y } = GAME_OVER;
+    const frame = useRomFrames((text.length - 1) * TYPE_FRAMES);
     return (
         <span
             className="arcade-attract-text arcade-game-over"
             style={textStyle(x, y)}
         >
-            {text.slice(0, Math.floor(frame / step) + 1)}
+            {text.slice(0, Math.floor(frame / TYPE_FRAMES) + 1)}
         </span>
     );
 };

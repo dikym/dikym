@@ -65,7 +65,7 @@ try {
         "!!document.querySelector('.arcade-trigger') && !document.querySelector('.curtain')"
     );
     const engine = await evaluate(`(async () => {
-        const {newGame, step, FRAME_S} = await import('/src/game/invaders.ts');
+        const {newGame, step, FRAME_S} = await import('/src/game/machine.ts');
         const percentile = (values, p) => [...values].sort((a,b)=>a-b)[Math.min(values.length-1, Math.floor(values.length*p))];
         const before = performance.now();
         newGame();

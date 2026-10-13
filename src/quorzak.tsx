@@ -1,11 +1,11 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import SpaceInvaders from "./components/arcade/SpaceInvaders.tsx";
+import Quorzak from "./components/arcade/Quorzak.tsx";
 
 createRoot(document.getElementById("root")!).render(
     <StrictMode>
         <main className="arcade-page">
-            <SpaceInvaders />
+            <Quorzak />
         </main>
     </StrictMode>
 );

@@ -16,12 +16,12 @@ export default defineConfig(({ command }) => ({
                 if (id !== "\0virtual:arcade-url") return;
                 // Retry needs the built chunk URL to bypass the browser's failed import cache.
                 return command === "serve"
-                    ? 'export default "/src/components/arcade/SpaceInvaders.tsx";'
+                    ? 'export default "/src/components/arcade/Quorzak.tsx";'
                     : `export default import.meta.ROLLUP_FILE_URL_${this.emitFile(
                           {
                               type: "chunk",
                               id: new URL(
-                                  "./src/components/arcade/SpaceInvaders.tsx",
+                                  "./src/components/arcade/Quorzak.tsx",
                                   import.meta.url
                               ).pathname,
                               preserveSignature: "strict",
@@ -34,10 +34,8 @@ export default defineConfig(({ command }) => ({
         rollupOptions: {
             input: {
                 main: new URL("./index.html", import.meta.url).pathname,
-                spaceInvaders: new URL(
-                    "./space-invaders/index.html",
-                    import.meta.url
-                ).pathname,
+                quorzak: new URL("./quorzak/index.html", import.meta.url)
+                    .pathname,
             },
         },
     },

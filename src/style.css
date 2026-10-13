@@ -24,9 +24,8 @@
 }
 
 @font-face {
-    font-family: "Space Invaders";
-    src: url("/fonts/space-invaders/space-invaders-extended.otf")
-        format("opentype");
+    font-family: "Quorzak";
+    src: url("/fonts/quorzak/space-invaders-extended.otf") format("opentype");
     font-style: normal;
     font-weight: 400;
     font-display: swap;
@@ -113,7 +112,7 @@
 @theme inline {
     --font-sans: "General Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
     --font-pixel: "Pixelify Sans", var(--font-sans);
-    --font-arcade: "Space Invaders", monospace;
+    --font-arcade: "Quorzak", monospace;
     --color-page: var(--page);
     --color-sheet: var(--sheet);
     --color-paper: var(--paper);
@@ -465,7 +464,7 @@
     container-type: inline-size;
     margin-inline: var(--rule-x);
 }
-/* Standalone page (space-invaders.dikym.me): the same container variables as the portfolio slot. */
+/* Standalone page (quorzak.dikym.me): the same container variables as the portfolio slot. */
 .arcade-page {
     --arcade-control-gap: 12px;
     --arcade-screen-padding: clamp(12px, 3vw, 32px);
@@ -503,7 +502,7 @@
 }
 .arcade-trigger svg {
     display: block;
-    width: calc(var(--arcade-field-width) * 11 / 224);
+    width: calc(var(--arcade-field-width) * 9 / 224);
     height: calc(var(--arcade-field-width) * 8 * 7 / (224 * 6));
 }
 .crab-frame:last-child {
@@ -703,11 +702,6 @@
     scale: 1 calc(7 / 6);
     transform-origin: top;
 }
-/* Mirrors the cap rows (1/8 to 1 em) in place while keeping the 7/6 stretch. */
-.arcade-attract-flipped {
-    scale: 1 calc(-7 / 6);
-    transform-origin: 50% calc(1.125em * 7 / 13);
-}
 .arcade-attract-sprite {
     position: absolute;
     width: calc(100% * 16 / 224);
@@ -773,7 +767,7 @@
     background: transparent;
     color: var(--ink-2);
 }
-/* ROM rows 240–255; x from $2501, $2701 and $3501 (docs/space-invaders-1978.md). */
+/* ROM rows 240–255; x from $2501, $2701 and $3501 (docs/quorzak.md). */
 .arcade-status {
     position: relative;
     width: 448px;

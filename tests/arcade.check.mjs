@@ -11,7 +11,7 @@ const STRETCH_AUDIT = `(() => {
         const el = node.parentElement;
         if (!node.textContent.trim() || !el.getClientRects().length) continue;
         if (el.closest('.arcade-keyboard-hint, .sr-only')) continue;
-        if (!getComputedStyle(el).fontFamily.includes('Space Invaders')) continue;
+        if (!getComputedStyle(el).fontFamily.includes('Quorzak')) continue;
         let stretched = false;
         for (let e = el; e && e !== section; e = e.parentElement) {
             const y = Number(getComputedStyle(e).scale.split(' ')[1]);
@@ -162,7 +162,7 @@ const key = (type, key, code) =>
 const setUpGame = async expression => {
     await send("Debugger.enable");
     const engine = await send("Runtime.evaluate", {
-        expression: `import(performance.getEntriesByType('resource').find(entry => entry.name.includes('/src/game/invaders.ts')).name).then(module => module.step)`,
+        expression: `import(performance.getEntriesByType('resource').find(entry => entry.name.includes('/src/game/machine.ts')).name).then(module => module.step)`,
         awaitPromise: true,
     });
     assert.equal(engine.result.type, "function", engine.result.description);
@@ -249,7 +249,7 @@ try {
     await waitFor("!document.querySelector('.curtain')");
     assert.equal(
         await evaluate(
-            "performance.getEntriesByType('resource').some(entry => entry.name.includes('/src/game/invaders.ts') || entry.name.includes('/src/game/cpu8080.js'))"
+            "performance.getEntriesByType('resource').some(entry => entry.name.includes('/src/game/machine.ts') || entry.name.includes('/src/game/cpu8080.js'))"
         ),
         false,
         "opening the portfolio does not load the arcade engine"
@@ -440,7 +440,7 @@ try {
     });
     assert.equal(
         await evaluate(
-            'document.fonts.load(\'16px "Space Invaders"\', "SCORE HI-SCORE 0123456789").then(fonts => fonts.length > 0 && fonts.every(font => font.status === "loaded"))'
+            'document.fonts.load(\'16px "Quorzak"\', "SCORE HI-SCORE 0123456789").then(fonts => fonts.length > 0 && fonts.every(font => font.status === "loaded"))'
         ),
         true
     );
@@ -645,7 +645,7 @@ try {
         Math.abs(
             alienWidth -
                 (await evaluate(
-                    'document.querySelector("canvas").getBoundingClientRect().width * 11 / 224'
+                    'document.querySelector("canvas").getBoundingClientRect().width * 9 / 224'
                 ))
         ) < 0.1,
         "trigger and game alien have the same size"
@@ -732,7 +732,7 @@ try {
         createHash("sha256")
             .update(Buffer.from(readyFrame.split(",")[1], "base64"))
             .digest("hex"),
-        "e1d7b3c24b52d8bc9ef10914454960f508522852832e93421977b23c445fb39c",
+        "58c5beeb134f1e2bc0151bf6dd6cbf2823841f3186d496e8bd22b7077bc7cd04",
         "initial canvas PNG matches the native baseline"
     );
     assert.equal(
@@ -954,9 +954,7 @@ try {
             Buffer.from(capture.data, "base64")
         );
     }
-    await setUpGame(
-        `g.memory[0x2085]=1; g.memory[0x2087]=0x97; g.memory[0x2088]=0x1d; g.memory[0x208a]=128;`
-    );
+    await setUpGame(`g.memory[0x2007]=10; g.memory[0x2008]=128;`);
     await evaluate("tickArcade(1)");
     await waitFor("!!document.querySelector('.arcade-ufo-points')");
     for (const width of [1280, 390]) {
@@ -998,7 +996,7 @@ try {
         assert.ok(
             Math.abs(sizes.shipHeight - (sizes.fieldHeight * 8) / 208) < 0.02
         );
-        assert.ok(Math.abs(sizes.alien - 33 / 28) < 0.01);
+        assert.ok(Math.abs(sizes.alien - 27 / 28) < 0.01);
         assert.equal(sizes.livesFont, "16px");
         const near = (actual, expected, message) =>
             assert.ok(
@@ -1007,7 +1005,7 @@ try {
             );
         const ink = await evaluate(`(() => {
             const ctx = document.createElement('canvas').getContext('2d');
-            ctx.font = '16px "Space Invaders"';
+            ctx.font = '16px "Quorzak"';
             const m = ctx.measureText('C');
             return {capTop: m.fontBoundingBoxAscent - m.actualBoundingBoxAscent, descent: m.fontBoundingBoxDescent};
         })()`);
@@ -1024,7 +1022,7 @@ try {
                 credit: [credit.left, credit.top, credit.height], label: label.height};
         })()`);
         const row = (hud.column * 7) / 6;
-        // ROM rows: line 239, cannons 240–247, text cap 241–247 (docs/space-invaders-1978.md).
+        // ROM rows: line 239, cannons 240–247, text cap 241–247 (docs/quorzak.md).
         near(hud.ship[1], hud.bottom, "cannons sit flush under the line");
         near(
             hud.digit[1],
@@ -1105,12 +1103,10 @@ try {
             "focus frame includes the scoreboard, playfield and lives/CREDIT row"
         );
     }
-    await setUpGame("window.savedLives=[g.memory[0x21ff],g.memory[0x2015]];");
+    await setUpGame("window.savedLives=g.memory[0x2003];");
     const lifePositions = [];
     for (const lives of [3, 2, 1]) {
-        await setUpGame(
-            `g.memory[0x21ff]=${lives - 1}; g.memory[0x2015]=0xff;`
-        );
+        await setUpGame(`g.memory[0x2003]=${lives};`);
         await evaluate("tickArcade(1)");
         await waitFor(
             `document.querySelector('.arcade-life-count').textContent === '${lives}'`
@@ -1133,8 +1129,8 @@ try {
         ),
         "life count stays at the same position as spare cannons disappear"
     );
-    await setUpGame("[g.memory[0x21ff],g.memory[0x2015]]=savedLives;");
-    await setUpGame("g.memory[0x2085]=0; g.elapsed=0;");
+    await setUpGame("g.memory[0x2003]=savedLives;");
+    await setUpGame("g.memory[0x2007]=0; g.elapsed=0;");
     await evaluate(
         "document.querySelector('.arcade-section').focus({preventScroll:true})"
     );
@@ -1155,7 +1151,7 @@ try {
         "document.querySelector('canvas').focus({preventScroll:true})"
     );
     await setUpGame("window.nativeGame=g;");
-    const nativeBefore = await evaluate("nativeGame.memory[0x201b]");
+    const nativeBefore = await evaluate("nativeGame.memory[0x2050]");
     await key("keyDown", "ArrowRight", "ArrowRight");
     await evaluate("tickArcade(5)");
     await key("keyUp", "ArrowRight", "ArrowRight");
@@ -1168,7 +1164,7 @@ try {
         "keyboard focus outlines the whole game instead of just the canvas"
     );
     assert.ok(
-        await evaluate(`nativeGame.memory[0x201b] > ${nativeBefore}`),
+        await evaluate(`nativeGame.memory[0x2050] > ${nativeBefore}`),
         "keyboard moves original cannon"
     );
     const pausedFrame = await evaluate(
@@ -1186,15 +1182,16 @@ try {
     await evaluate(
         "document.querySelector('canvas').focus({preventScroll:true})"
     );
+    const shotsBefore = await evaluate("nativeGame.memory[0x2055]");
     await key("keyDown", " ", "Space");
     await evaluate("tickArcade(2)");
     await key("keyUp", " ", "Space");
-    assert.notEqual(
-        await evaluate("nativeGame.memory[0x2025]"),
-        0,
-        "Space runs native laser task"
+    assert.equal(
+        await evaluate("nativeGame.memory[0x2055]"),
+        shotsBefore + 1,
+        "Space fires one ROM shot"
     );
-    await setUpGame("g.memory.fill(0,0x2100,0x2137);");
+    await setUpGame("g.memory.fill(0,0x2010,0x2047);");
     await evaluate("tickArcade(100)");
     assert.equal(
         await evaluate("nativeGame.wave"),
@@ -1208,9 +1205,7 @@ try {
         true,
         "no invented victory screen"
     );
-    await setUpGame(
-        "g.memory[0x20e7]=0; g.memory[0x21ff]=0; g.memory[0x2015]=0;"
-    );
+    await setUpGame("g.memory[0x2000]=2; g.memory[0x2003]=0;");
     await evaluate("tickArcade(1)");
     await waitFor("!!document.querySelector('.arcade-game-over')");
     assert.deepEqual(
@@ -1576,9 +1571,9 @@ try {
         "closing restores focus"
     );
     for (const [result, setup] of [
-        ["out of lives", "g.memory[0x20e7]=0;"],
-        ["landed", "g.memory[0x20e7]=0;"],
-        ["reduced motion", "g.memory[0x20e7]=0;"],
+        ["out of lives", "g.memory[0x2000]=2;"],
+        ["landed", "g.memory[0x2000]=2;"],
+        ["reduced motion", "g.memory[0x2000]=2;"],
     ]) {
         const reduced = result === "reduced motion";
         await send("Emulation.setEmulatedMedia", {
