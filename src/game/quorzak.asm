@@ -59,9 +59,15 @@ AEY      EQU $207D
 SAVESP   EQU $207E      ; 2 bytes
 HCOL     EQU $2080      ; HITALIEN column being searched
 HCNT     EQU $2081
+SBT      EQU $2082      ; player shot burst ticks left
+SBX      EQU $2083
+SBY      EQU $2084
+PREVFIRE EQU $2085
+FIREEDGE EQU $2086
+BOMBIDX  EQU $2087      ; alien shot moved on the last tick
 
         PUBLIC PX, PSTATE, SHOTON, SHOTX, SHOTY, SHOTCNT, CURSOR, RELOAD
-        PUBLIC UFOON, UFOX, UFOTMR, AEXT, ASHOTS, LIVECNT
+        PUBLIC UFOON, UFOX, UFOTMR, AEXT, ASHOTS, LIVECNT, SBT
 
 ; ---- Vectors
         ORG 0
@@ -112,7 +118,8 @@ NEWGAME:
         STA MODE
         RET
 
-; Clears the screen and sets up the rack, shields and ground for WAVE.
+; Clears the screen and sets up shields, ground and an undrawn rack for WAVE:
+; the first pass draws the rack one alien per tick, in place.
 NEWWAVE:
         CALL CLEARVRAM
         LXI H,ALIENS
@@ -137,24 +144,24 @@ NEWWAVE:
         STA FRAME
         STA PDX
         STA PDY
+        STA CURSOR
         STA NOTE
         STA SHOTON
         STA AEXT
+        STA SBT
         STA UFOON
         STA UFOPTS
         STA ASHOTS
         STA ASHOTS+4
         STA ASHOTS+8
         MVI A,55
-        STA CURSOR
         STA LIVECNT
         MVI A,48
         STA RELOAD
         LXI H,1536
         SHLD UFOTMR
         CALL DRAWSHIELDS
-        CALL DRAWGROUND
-        JMP DRAWGRID
+        JMP DRAWGROUND
 
 ; Zeroes VRAM with 3584 PUSHes; interrupts are off in every caller.
 CLEARVRAM:
@@ -219,18 +226,6 @@ DRAWSHIELDS:
         POP H
         INX H
         DCR C
-        JNZ .loop
-        RET
-
-DRAWGRID:
-        XRA A
-        STA BLITOP
-        MVI C,0
-.loop:  LDA FRAME
-        CALL ALIENBLIT
-        INR C
-        MOV A,C
-        CPI 55
         JNZ .loop
         RET
 
@@ -504,8 +499,18 @@ PLAYER: LDA PSTATE
         LXI H,SHIPX+13
         JMP .blit
 
-; Player shot: fire when idle, else move 4 px up and resolve what it touched.
+; Player shot: fire on a new press when idle, else move 4 px up and resolve
+; what it touched. A shot ending at the top or on a shield bursts there first.
 PLAYERSHOT:
+        IN INPUTS
+        ANI $10
+        MOV B,A
+        LDA PREVFIRE
+        CMA
+        ANA B
+        STA FIREEDGE    ; fire pressed since last tick
+        MOV A,B
+        STA PREVFIRE
         LDA AEXT
         ORA A
         JZ .noexp
@@ -521,15 +526,26 @@ PLAYERSHOT:
         LXI H,AEXPLGFX
         MVI B,16
         CALL BLIT
-.noexp: LDA SHOTON
+.noexp: LDA SBT
+        ORA A
+        JZ .noburst
+        DCR A
+        STA SBT
+        JNZ .noburst
+        MVI A,1         ; burst over: erasing it also takes shield pixels
+        STA BLITOP
+        CALL BURSTBLIT
+.noburst: LDA SHOTON
         ORA A
         JNZ .fly
         LDA PSTATE
         LXI H,AEXT
         ORA M
+        LXI H,SBT
+        ORA M
         RNZ
-        IN INPUTS
-        ANI $10
+        LDA FIREEDGE
+        ORA A
         RZ
         LDA PX
         ADI 6
@@ -571,11 +587,14 @@ PLAYERSHOT:
         JMP BLIT
 .gone:  XRA A
         STA SHOTON
-        RET
+        MVI E,32
+        JMP .burst
 .hit:   XRA A
         STA SHOTON
         CALL SHOTVSBOMB
-        RNZ
+        LDA SHOTY
+        MOV E,A
+        JNZ .burst
         LDA SHOTY
         CPI 48
         JC .ufo
@@ -586,14 +605,26 @@ PLAYERSHOT:
         CPI 1
         RNZ
         JMP HITUFO
-.shield: LDA SHOTX
-        SUI 2
-        MOV D,A
-        LDA SHOTY
+.shield: LDA SHOTY
         SUI 4
         MOV E,A
-        MVI A,1
+.burst: LDA SHOTX
+        SUI 2
+        STA SBX
+        MOV A,E
+        STA SBY
+        MVI A,16
+        STA SBT
+        XRA A
         STA BLITOP
+        JMP BURSTBLIT
+
+; Blits the player shot's burst at SBX, SBY per BLITOP.
+BURSTBLIT:
+        LDA SBX
+        MOV D,A
+        LDA SBY
+        MOV E,A
         LXI H,BLASTGFX
         MVI B,6
         JMP BLIT
@@ -602,8 +633,8 @@ PLAYERSHOT:
 SHOTVSBOMB:
         LXI H,ASHOTS
 .loop:  MOV A,M
-        ORA A
-        JZ .next
+        CPI 1
+        JNZ .next
         INX H
         LDA SHOTX
         SUB M
@@ -787,17 +818,22 @@ ADDSCORE:
         ORI 16
         STA PULSEA
         RET
-; Moves every alien shot, then fires one when the reload runs out.
+; Moves one alien shot per tick, in turn, then fires one when the reload runs out.
 ALIENSHOTS:
-        LXI H,ASHOTS
-.each:  MOV A,M
+        LDA BOMBIDX
+        INR A
+        CPI 3
+        JC .turn
+        XRA A
+.turn:  STA BOMBIDX
+        ADD A
+        ADD A
+        ADI LOW(ASHOTS)
+        MOV L,A
+        MVI H,HIGH(ASHOTS)
+        MOV A,M
         ORA A
         CNZ BOMBSTEP
-        LXI D,4
-        DAD D
-        MOV A,L
-        CPI LOW(ASHOTS+12)
-        JNZ .each
         LDA PSTATE
         ORA A
         RNZ
@@ -886,8 +922,11 @@ ALIENSHOTS:
         STA BLITOP
         JMP BOMBBLIT
 
-; In: HL = live alien shot. Moves it down and resolves what it touched. Keeps HL.
+; In: HL = alien shot record, A = its state (1 falling, 2 bursting). Moves it
+; down 4 px (5 with 8 aliens or fewer) and resolves what it touched. Keeps HL.
 BOMBSTEP:
+        CPI 2
+        JZ .fade
         MVI A,1
         STA BLITOP
         CALL BOMBBLIT
@@ -895,9 +934,9 @@ BOMBSTEP:
         INX H
         LDA LIVECNT
         CPI 9
-        MVI A,1
-        JNC .slow
         MVI A,4
+        JNC .slow
+        MVI A,5
 .slow:  ADD M
         MOV M,A
         INX H
@@ -906,7 +945,7 @@ BOMBSTEP:
         DCX H
         DCX H
         CPI 232
-        JNC .gone
+        JNC .ground
         MVI A,2
         STA BLITOP
         XRA A
@@ -918,8 +957,20 @@ BOMBSTEP:
 .draw:  XRA A
         STA BLITOP
         JMP BOMBBLIT
-.gone:  MVI M,0
-        RET
+.ground: MVI E,232
+        JMP BOMBBURST
+.fade:  INX H
+        INX H
+        INX H
+        DCR M
+        DCX H
+        DCX H
+        DCX H
+        RNZ
+        MVI M,0         ; burst over: erasing it dents shields and ground
+        MVI A,1
+        STA BLITOP
+        JMP BURSTAT
 .hit:   INX H
         INX H
         MOV A,M
@@ -929,27 +980,39 @@ BOMBSTEP:
         JNC .ship
         CPI 186
         JC .draw
-        MVI M,0         ; shield: blast a hole under the shot
-        INX H
-        MOV A,M
-        DCR A
-        MOV D,A
-        INX H
-        MOV A,M
-        ADI 2
+        ADI 2           ; shield
         MOV E,A
+        JMP BOMBBURST
+.ship:  MVI M,0
+        JMP KILLPLAYER
+
+; In: HL = alien shot record, E = top y. Turns the shot into a burst. Keeps HL.
+BOMBBURST:
+        MVI M,2
+        INX H
+        DCR M           ; burst starts one column left of the shot
+        INX H
+        MOV M,E
+        INX H
+        MVI M,3         ; lasts three of the shot's turns
         DCX H
         DCX H
-        PUSH H
-        MVI A,1
+        DCX H
+        XRA A
         STA BLITOP
+
+; In: HL = bursting alien shot record; BLITOP set. Keeps HL.
+BURSTAT:
+        PUSH H
+        INX H
+        MOV D,M
+        INX H
+        MOV E,M
         LXI H,BLASTGFX
         MVI B,6
         CALL BLIT
         POP H
         RET
-.ship:  MVI M,0
-        JMP KILLPLAYER
 
 ; In: HL = alien shot record; BLITOP set. Keeps HL.
 BOMBBLIT:
@@ -966,8 +1029,6 @@ BOMBBLIT:
         MOV E,M
         INX H
         MOV A,M
-        RRC
-        RRC
         ANI 1
         ADD C
         MOV C,A
@@ -1005,11 +1066,16 @@ KILLPLAYER:
         CALL BLIT
         LXI H,ASHOTS
 .clr:   MOV A,M
-        ORA A
-        JZ .n
-        CALL BOMBERASE
-        MVI M,0
-.n:     LXI D,4
+        CPI 1
+        CZ BOMBERASE
+        MOV A,M
+        CPI 2
+        JNZ .off
+        MVI A,1
+        STA BLITOP
+        CALL BURSTAT
+.off:   MVI M,0
+        LXI D,4
         DAD D
         MOV A,L
         CPI LOW(ASHOTS+12)
@@ -1161,8 +1227,12 @@ UFOTEXT:
         RET
 
 ; Moves the next live alien one step. When all have moved, the tick starts the
-; next pass instead, keeping the scan and a move out of the same tick.
-MARCH:
+; next pass instead, keeping the scan and a move out of the same tick. The rack
+; waits while an alien or the ship explodes.
+MARCH:  LDA PSTATE
+        LXI H,AEXT
+        ORA M
+        RNZ
 .find:  LDA CURSOR
         CPI 55
         JZ STARTPASS
@@ -1363,7 +1433,7 @@ SOUND:  LDA UFOON
         RET
 
 ; ---- Data
-WAVEY:   DB 120, 136, 144, 152, 152, 160, 160, 160
+WAVEY:   DB 128, 144, 152, 160, 160, 168, 168, 168   ; row 4 stays below the red band
 SHIELDX: DB 32, 77, 122, 167
 ROWGFX:  DW DOME, DOME, TWIN, TWIN, SPIRE
 NOTEBITS: DB 1, 2, 4, 8

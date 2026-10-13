@@ -5,6 +5,13 @@ import { assemble } from "../tools/asm8080.ts";
 import { ROM, SYMBOLS } from "../src/game/rom.ts";
 import { FRAME_S, W, litPixel, newGame, step } from "../src/game/machine.ts";
 import type { Game, Input } from "../src/game/machine.ts";
+import {
+    ALIEN_SPRITES,
+    PLAYER,
+    SCORE_GLYPHS,
+    TWIN,
+    UFO,
+} from "../src/game/sprites.ts";
 
 const IDLE: Input = { left: false, right: false, fire: false };
 const LEFT: Input = { ...IDLE, left: true };
@@ -41,19 +48,102 @@ for (const name of built.publics)
     );
 assert.ok(ROM.length <= 0x2000);
 
+// Sprites read from the ROM match the spec drawings.
+const padded = (pad: number, rows: string[]) =>
+    rows.map(row => ".".repeat(pad) + row + ".".repeat(16 - pad - row.length));
+assert.deepEqual(
+    ALIEN_SPRITES[0][0],
+    padded(4, [
+        "...X...",
+        "..XXX..",
+        ".XXXXX.",
+        "XX.X.XX",
+        "XXXXXXX",
+        ".X.X.X.",
+        "X.....X",
+        ".X...X.",
+    ])
+);
+assert.deepEqual(
+    ALIEN_SPRITES[1][1],
+    padded(3, [
+        ".XXXXXXX.",
+        "XXXXXXXXX",
+        "XX.XXX.XX",
+        "XXXXXXXXX",
+        ".XX.X.XX.",
+        "..X...X..",
+        ".X.X.X.X.",
+        ".........",
+    ])
+);
+assert.deepEqual(
+    ALIEN_SPRITES[2][0],
+    padded(2, [
+        "....XXX....",
+        "..XXXXXXX..",
+        ".XXXXXXXXX.",
+        "XX..XXX..XX",
+        "XXXXXXXXXXX",
+        ".X.X.X.X.X.",
+        "X.X.X.X.X.X",
+        "...........",
+    ])
+);
+assert.equal(TWIN[0][0], ".XXXXXXX.");
+assert.deepEqual(PLAYER, [
+    "......X......",
+    ".....XXX.....",
+    ".....XXX.....",
+    "....XXXXX....",
+    "...XXXXXXX...",
+    ".XXXXX.XXXXX.",
+    "XXXXXXXXXXXXX",
+    "XX.........XX",
+]);
+assert.equal(UFO[0], "......XXX......");
+assert.deepEqual(SCORE_GLYPHS["0"].slice(0, 7), [
+    "..XXX...",
+    ".X...X..",
+    ".X...X..",
+    ".X.X.X..",
+    ".X...X..",
+    ".X...X..",
+    "..XXX...",
+]);
+assert.deepEqual(SCORE_GLYPHS[" "], Array(8).fill("........"));
+
 // Boot
 {
     const g = newGame();
     assert.equal(g.memory[0x2000], 1);
     assert.deepEqual([g.score, g.lives, g.wave, g.over], [0, 3, 1, false]);
     assert.equal(g.invaders.filter(invader => invader.alive).length, 55);
-    assert.equal(g.memory[0x2006], 120);
-    assert.ok([24, 26].includes(g.memory[0x2005]), "grid starts at x 24");
+    assert.equal(g.memory[0x2006], 128);
+    // Only the UFO flies in the red overlay band (y 32-61); every alien sits below it.
+    assert.ok(
+        g.invaders.every(invader => invader.y >= 62),
+        "aliens below red"
+    );
+    assert.equal(g.memory[0x2005], 24);
     for (let x = 0; x < W; x++) assert.ok(litPixel(g, x, 239), `ground ${x}`);
     assert.ok(litPixel(g, 36, 196), "shield body");
     assert.ok(!litPixel(g, 42, 203), "shield notch");
-    // Dome's top row spans x+6..x+8, so x 32 is lit whether it sits at 24 or 26.
-    assert.ok(litPixel(g, 32, 120), "bottom-left Dome drawn");
+    // Like the original, the rack starts empty and appears one alien per tick
+    // without moving; the UI draws the waiting rack itself before Start.
+    const rackPixels = () => {
+        let lit = 0;
+        for (let x = 0; x < W; x++)
+            for (let y = 64; y < 136; y++) lit += Number(litPixel(g, x, y));
+        return lit;
+    };
+    assert.equal(rackPixels(), 0, "rack not drawn before the first tick");
+    run(g, 1);
+    assert.ok(litPixel(g, 32, 128), "bottom-left Dome drawn first");
+    assert.ok(!litPixel(g, 24 + 10 * 16 + 7, 80), "top-right Spire not yet");
+    run(g, 54);
+    assert.ok(litPixel(g, 24 + 10 * 16 + 7, 80), "whole rack drawn");
+    assert.equal(g.memory[0x2005], 24, "the drawing pass does not move");
     const other = newGame();
     other.memory[0x2010] = 0;
     assert.equal(g.memory[0x2010], 1, "games share no memory");
@@ -91,7 +181,7 @@ assert.ok(ROM.length <= 0x2000);
     g.memory.fill(0, 0x2010, 0x2010 + 55);
     run(g, 120);
     assert.equal(g.wave, 2);
-    assert.equal(g.memory[0x2006], 136);
+    assert.equal(g.memory[0x2006], 144);
     assert.equal(g.invaders.filter(invader => invader.alive).length, 55);
     assert.ok(litPixel(g, 36, 196), "shield redrawn");
 }
@@ -123,8 +213,43 @@ const shoot = (g: Game) => {
     assert.equal(g.memory[S.SHOTON], 1, "shot fired");
     for (let i = 0; i < 120 && g.memory[S.SHOTON]; i++) tick(g);
     assert.equal(g.memory[S.SHOTON], 0, "shot ended");
+    for (let i = 0; i < 60 && g.memory[S.SBT]; i++) tick(g);
     return g.score - before;
 };
+
+// Holding fire shoots once; the next shot needs a new press.
+{
+    const g = newGame();
+    tick(g, FIRE);
+    assert.equal(g.memory[S.SHOTON], 1);
+    run(g, 150, FIRE);
+    assert.equal(g.memory[S.SHOTON], 0, "held fire does not shoot again");
+    assert.equal(g.memory[S.SHOTCNT], 1);
+    tick(g);
+    tick(g, FIRE);
+    assert.equal(g.memory[S.SHOTON], 1, "a new press shoots");
+    assert.equal(g.memory[S.SHOTCNT], 2);
+}
+
+// A shot that reaches the top bursts there; the next shot waits for the burst.
+{
+    const g = newGame();
+    const burst = () => {
+        let lit = 0;
+        for (let x = 16; x < 26; x++)
+            for (let y = 32; y < 41; y++) lit += Number(litPixel(g, x, y));
+        return lit;
+    };
+    tick(g, FIRE);
+    for (let i = 0; i < 120 && g.memory[S.SHOTON]; i++) tick(g);
+    assert.ok(burst() > 0, "burst drawn at the top");
+    tick(g, FIRE);
+    assert.equal(g.memory[S.SHOTON], 0, "no new shot during the burst");
+    run(g, 20);
+    assert.equal(burst(), 0, "burst erased");
+    tick(g, FIRE);
+    assert.equal(g.memory[S.SHOTON], 1, "fires again after the burst");
+}
 
 // Ship moves and stops at the walls.
 {
@@ -190,6 +315,74 @@ const shoot = (g: Game) => {
     aim(g, 2);
     shoot(g);
     assert.deepEqual([g.score, g.lives], [1510, 4]);
+}
+
+// The rack waits while an alien explodes and while the ship explodes.
+{
+    const g = newGame();
+    run(g, 60);
+    aim(g, 2);
+    tick(g, FIRE);
+    for (let i = 0; i < 120 && !g.memory[S.AEXT]; i++) tick(g);
+    assert.ok(g.memory[S.AEXT] > 0, "alien hit");
+    const cursor = g.memory[S.CURSOR];
+    for (let i = 0; i < 60 && g.memory[S.AEXT]; i++) {
+        tick(g);
+        if (g.memory[S.AEXT])
+            assert.equal(
+                g.memory[S.CURSOR],
+                cursor,
+                "rack waits for the explosion"
+            );
+    }
+    g.memory[S.PSTATE] = 64;
+    const [during, x] = [g.memory[S.CURSOR], g.memory[0x2005]];
+    run(g, 30);
+    assert.deepEqual(
+        [g.memory[S.CURSOR], g.memory[0x2005]],
+        [during, x],
+        "rack waits while the ship explodes"
+    );
+}
+
+// Alien shots take turns: each moves 4 px on every third tick.
+{
+    const g = newGame();
+    run(g, 60);
+    const bolt = S.ASHOTS + 4;
+    g.memory.set([1, 210, 100, 0], bolt);
+    run(g, 3);
+    assert.equal(g.memory[bolt + 2], 104);
+    run(g, 3);
+    assert.equal(g.memory[bolt + 2], 108);
+}
+
+// The player's shot and an alien shot destroy each other with a burst.
+{
+    const g = newGame();
+    run(g, 60);
+    g.memory.set([1, 210, 150, 0], S.ASHOTS + 4);
+    run(g, 3);
+    g.memory.set([1, 211, 180], S.SHOTON);
+    let burst = 0;
+    for (let i = 0; i < 20 && g.memory[S.ASHOTS + 4]; i++) {
+        tick(g);
+        burst = Math.max(burst, g.memory[S.SBT]);
+    }
+    assert.equal(g.memory[S.ASHOTS + 4], 0, "alien shot destroyed");
+    assert.equal(g.memory[S.SHOTON], 0, "player shot destroyed");
+    assert.ok(burst > 0, "they burst where they met");
+}
+
+// An alien shot that reaches the ground bursts and leaves a dent in it.
+{
+    const g = newGame();
+    run(g, 60);
+    g.memory.set([1, 210, 224, 0], S.ASHOTS + 4);
+    run(g, 40);
+    assert.equal(g.memory[S.ASHOTS + 4], 0, "shot and burst gone");
+    assert.ok(!litPixel(g, 211, 239), "dent in the ground");
+    assert.ok(litPixel(g, 200, 239), "ground elsewhere intact");
 }
 
 // Alien shots fall; a ship parked under the rack is lost three times, then game over.

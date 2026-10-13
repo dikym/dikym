@@ -2,7 +2,7 @@ import type { SoundEvent } from "./machine";
 
 type Voice = (time: number, out: GainNode) => AudioScheduledSourceNode[];
 
-// Triangle pitches for the four march notes (Hz).
+// Pitches of the four march notes (Hz).
 const MARCH = [98, 87, 78, 73];
 
 export const createArcadeAudio = () => {
@@ -177,12 +177,17 @@ export const createArcadeAudio = () => {
                             play(
                                 "fleet",
                                 (time, out) => {
-                                    decay(out, time, 0.5, 0.07);
+                                    // Square harmonics keep these low notes audible on small speakers.
+                                    const filter = context.createBiquadFilter();
+                                    filter.type = "lowpass";
+                                    filter.frequency.value = 900;
+                                    filter.connect(out);
+                                    decay(out, time, 0.8, 0.1);
                                     return [
-                                        oscillator("triangle", MARCH[i], out),
+                                        oscillator("square", MARCH[i], filter),
                                     ];
                                 },
-                                0.07
+                                0.1
                             );
                     if (rising & 16)
                         play("ufo-hit", VOICES["ufo-hit"], LENGTHS["ufo-hit"]);
