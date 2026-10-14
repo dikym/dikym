@@ -147,7 +147,7 @@ const ArcadeSection = () => {
     };
 
     return (
-        <div className="arcade-entry">
+        <div className={failed ? "arcade-entry is-lost" : "arcade-entry"}>
             <div id="arcade" className="arcade-slot">
                 {origin && GameComponent && (
                     <GameComponent
@@ -178,9 +178,43 @@ const ArcadeSection = () => {
                     </span>
                 )}
                 {failed && (
-                    <p role="alert" className="text-center text-sm">
-                        Arcade could not load. Try again.
-                    </p>
+                    <div role="alert" className="arcade-error">
+                        <div className="flex items-start justify-between gap-3">
+                            <p className="arcade-error-title">Signal lost</p>
+                            <button
+                                type="button"
+                                aria-label="Dismiss"
+                                onClick={() => {
+                                    setFailed(false);
+                                    triggerRef.current?.focus({
+                                        preventScroll: true,
+                                    });
+                                }}
+                                className="text-ink-2 hover:text-ink -mt-2 -mr-2 grid size-7 cursor-pointer place-items-center"
+                            >
+                                <svg
+                                    viewBox="0 0 12 12"
+                                    className="size-3"
+                                    stroke="currentColor"
+                                    strokeWidth="1.5"
+                                    aria-hidden="true"
+                                >
+                                    <path d="M1 1l10 10M11 1L1 11" />
+                                </svg>
+                            </button>
+                        </div>
+                        <p className="text-ink-2 mt-2 text-sm">
+                            The arcade could not beam down. Tap the alien to try
+                            again, or refresh the page.
+                        </p>
+                        <button
+                            type="button"
+                            onClick={() => location.reload()}
+                            className="border-line hover:border-ink mt-3 cursor-pointer border px-3 py-1.5 text-sm"
+                        >
+                            Refresh page
+                        </button>
+                    </div>
                 )}
             </div>
         </div>
