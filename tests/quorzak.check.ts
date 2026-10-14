@@ -35,6 +35,32 @@ const run = (g: Game, frames: number, input = IDLE, options: Quiet = {}) => {
     for (let i = 0; i < frames; i++) tick(g, input, options);
 };
 
+// The first newGame boots the ROM from reset and keeps a snapshot; later games
+// copy it. Both must be the same machine, frame for frame.
+{
+    const cold = newGame();
+    const warm = newGame();
+    assert.deepEqual(warm.cpu.save(), cold.cpu.save());
+    assert.deepEqual(warm.memory, cold.memory);
+    for (let i = 0; i < 600; i++) {
+        const input = {
+            fire: i % 100 < 50,
+            left: i % 240 < 80,
+            right: i % 240 > 160,
+        };
+        step(cold, input, FRAME_S);
+        step(warm, input, FRAME_S);
+    }
+    assert.deepEqual(warm.memory, cold.memory, "snapshot game diverged");
+    assert.deepEqual(warm.events, cold.events);
+    const times = Array.from({ length: 21 }, () => {
+        const start = performance.now();
+        newGame();
+        return performance.now() - start;
+    }).sort((a, b) => a - b);
+    assert.ok(times[10] < 0.5, `newGame median ${times[10]} ms`);
+}
+
 // The committed ROM is the assembled source.
 const built = assemble(
     readFileSync(new URL("../src/game/quorzak.asm", import.meta.url), "utf8")

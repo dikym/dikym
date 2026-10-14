@@ -35,6 +35,9 @@ The browser checks (`tests/*.check.mjs`) need Vite and Chromium started with
   `& $3FFF`; writes below `$2000` are ignored.
 - VRAM column `x` (upright screen) is 32 bytes; pixel `(x, y)` is bit `(255 - y) & 7` of
   byte `$2400 + x*32 + ((255 - y) >> 3)`.
+- `newGame()` cold-boots the ROM once per page load (about 2 ms of emulation) and keeps
+  the booted machine in memory; every later game copies it (about 0.04 ms). The snapshot
+  is taken from the ROM in use, so it cannot go stale.
 - The CPU runs at `19,968,000 / 10` Hz; a frame is `320 × 262 / (19,968,000 / 4)`
   seconds, about 59.542 Hz. `RST 1` is raised at scanline 96 and `RST 2` at 224.
 - `RST 1` runs the whole game tick. `RST 2` only re-enables interrupts.

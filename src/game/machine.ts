@@ -1,4 +1,4 @@
-import type { Cpu8080 } from "./cpu8080.js";
+import type { Cpu8080, CpuState } from "./cpu8080.js";
 import { createCpu8080 } from "./cpu8080.js";
 import { ROM } from "./rom.ts";
 
@@ -82,6 +82,17 @@ const frame = (g: Game) => {
     }
 };
 
+// The machine right after the ROM's cold boot, taken on the first newGame of a
+// page load: later games copy it instead of emulating the boot again.
+let booted: {
+    memory: Uint8Array;
+    cpu: CpuState;
+    shift: number;
+    shiftOffset: number;
+    deadline: number;
+    sound: number[];
+} | null = null;
+
 export const newGame = (): Game => {
     const memory = new Uint8Array(0x4000);
     memory.set(ROM);
@@ -130,10 +141,29 @@ export const newGame = (): Game => {
                     ? (g.shift >> (8 - g.shiftOffset)) & 255
                     : 0x0e
     );
-    // Cold reset: the ROM clears memory and starts a game within a few frames.
-    for (let frames = 0; memory[0x2000] !== 1; frames++) {
-        if (frames === 4) throw new Error("Quorzak ROM did not start");
-        frame(g);
+    if (booted) {
+        memory.set(booted.memory);
+        g.cpu.restore(booted.cpu);
+        Object.assign(g, {
+            shift: booted.shift,
+            shiftOffset: booted.shiftOffset,
+            deadline: booted.deadline,
+            sound: [...booted.sound],
+        });
+    } else {
+        // Cold reset: the ROM clears memory and starts a game within a few frames.
+        for (let frames = 0; memory[0x2000] !== 1; frames++) {
+            if (frames === 4) throw new Error("Quorzak ROM did not start");
+            frame(g);
+        }
+        booted = {
+            memory: memory.slice(),
+            cpu: g.cpu.save(),
+            shift: g.shift,
+            shiftOffset: g.shiftOffset,
+            deadline: g.deadline,
+            sound: [...g.sound],
+        };
     }
     g.events.length = 0;
     readState(g);
