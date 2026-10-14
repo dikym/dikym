@@ -44,6 +44,12 @@ export const createArcadeAudio = () => {
     } catch {
         return null;
     }
+    // After a lock iOS can report "running" while the output stays silent, so the context is
+    // suspended on hide: wake() then sees "suspended" and resumes it on the next press.
+    const sleep = () => {
+        if (document.hidden) void context.suspend().catch(() => {});
+    };
+    document.addEventListener("visibilitychange", sleep);
     const master = context.createGain();
     master.gain.value = 0;
     master.connect(context.destination);
@@ -305,6 +311,7 @@ export const createArcadeAudio = () => {
             if (!value) void context.resume().catch(() => {});
         },
         close: () => {
+            document.removeEventListener("visibilitychange", sleep);
             for (const channel of channels.keys()) stop(channel);
             void context.close().catch(() => {});
         },

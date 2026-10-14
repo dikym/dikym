@@ -847,6 +847,17 @@ try {
         `document.querySelector('.arcade-section').dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerType: 'touch' }))`
     );
     await waitFor(`arcadeAudioContexts[0].state === 'running'`);
+    // After a lock iOS can report "running" with no sound, so hiding the page suspends it first.
+    await evaluate(
+        `Object.defineProperty(document, 'hidden', { value: true, configurable: true }); document.dispatchEvent(new Event('visibilitychange'))`
+    );
+    await waitFor(`arcadeAudioContexts[0].state === 'suspended'`);
+    await evaluate(
+        `delete document.hidden; document.dispatchEvent(new Event('visibilitychange'))`
+    );
+    await key("keyDown", "ArrowLeft", "ArrowLeft");
+    await key("keyUp", "ArrowLeft", "ArrowLeft");
+    await waitFor(`arcadeAudioContexts[0].state === 'running'`);
     await click(".arcade-sound");
     assert.equal(
         await evaluate(
