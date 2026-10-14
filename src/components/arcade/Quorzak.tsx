@@ -349,7 +349,8 @@ const Quorzak: React.FC<QuorzakProps> = ({
         section.classList.remove("is-expanded");
         const timing = {
             duration: reduced ? 0 : 1200,
-            easing: "cubic-bezier(.65,0,.2,1)",
+            // A quick start keeps the peak scroll speed low when the page travels far.
+            easing: "cubic-bezier(.4,0,.2,1)",
         };
         const reveal = section.animate(
             [
