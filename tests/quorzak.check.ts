@@ -164,6 +164,7 @@ assert.deepEqual(SCORE_GLYPHS["8"].slice(0, 7), [
     for (let x = 0; x < W; x++) assert.ok(litPixel(g, x, 239), `ground ${x}`);
     assert.ok(litPixel(g, 36, 196), "shield body");
     assert.ok(!litPixel(g, 42, 203), "shield notch");
+    assert.ok(litPixel(g, 53, 196) && litPixel(g, 33, 207), "shield is 22x16");
     // Like the original, the rack starts empty and appears one alien per tick
     // without moving; the UI draws the waiting rack itself before Start.
     const rackPixels = () => {
@@ -351,8 +352,8 @@ const shoot = (g: Game) => {
     const g = newGame();
     const shieldPixels = () => {
         let lit = 0;
-        for (let x = 32; x < 52; x++)
-            for (let y = 192; y < 204; y++) lit += Number(litPixel(g, x, y));
+        for (let x = 32; x < 54; x++)
+            for (let y = 192; y < 208; y++) lit += Number(litPixel(g, x, y));
         return lit;
     };
     const before = shieldPixels();

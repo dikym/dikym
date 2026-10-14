@@ -219,12 +219,12 @@ SHIELDSFROM:
         PUSH B
         PUSH D
         LXI H,SHIELD
-        MVI B,20
+        MVI B,22
         MVI E,192
         CALL BLIT
         POP D
-        LXI H,SHIELD+20
-        MVI B,20
+        LXI H,SHIELD+22
+        MVI B,22
         MVI E,200
         CALL BLIT
         POP B
@@ -1006,7 +1006,7 @@ BOMBSTEP:
         DCX H
         CPI 186
         JC .draw        ; high up it passes through debris
-        CPI 204
+        CPI 208
         JC .burst       ; a shield
         INX H
         LDA PX
@@ -1603,8 +1603,9 @@ SHIPX:  DB $21,$03,$15,$07,$06,$1B,$29,$1B,$06,$07,$15,$03,$21
 UFOGFX: DB $08,$1A,$3C,$28,$78,$28,$F8,$E8,$F8,$28,$78,$28,$3C,$1A,$08
 UFOXGFX: DB $54,$00,$28,$44,$10,$28,$00,$64,$00,$28,$10,$44,$28,$00,$54
 AEXPLGFX: DB $00,$00,$92,$54,$00,$28,$00,$C6,$00,$28,$00,$54,$92,$00,$00,$00
-SHIELD: DB $0F,$1F,$3F,$7F,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$7F,$3F,$1F,$0F
-        DB $F0,$F0,$F0,$F0,$F0,$E0,$C0,$80,$00,$00,$00,$00,$80,$C0,$E0,$F0,$F0,$F0,$F0,$F0
+; Shields are 22x16: rows 0-7, then rows 8-15.
+SHIELD: DB $0F,$1F,$3F,$7F,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$7F,$3F,$1F,$0F
+        DB $FF,$FF,$FF,$FF,$FF,$FF,$F8,$F0,$E0,$C0,$C0,$C0,$C0,$E0,$F0,$F8,$FF,$FF,$FF,$FF,$FF,$FF
 PSHOT:  DB $F0
 BLASTGFX: DB $AA,$5C,$FB,$3C,$76,$89
 MASK12: DB $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
