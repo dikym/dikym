@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from "react";
 import SocialLinks from "../ui/SocialLinks.tsx";
 
 interface FooterProps {
@@ -15,12 +16,36 @@ const sitemap = [
 const heading = "eyebrow mb-4 tracking-[0.18em] text-ink-3";
 
 const Footer: React.FC<FooterProps> = ({ onScrollToSection }) => {
+    const footerRef = useRef<HTMLElement>(null);
+    const wrapRef = useRef<HTMLDivElement>(null);
+    // The ruled sheet ends on a line only if the footer is a whole number of 5px rows
+    // tall, so the bottom padding takes up the remainder of its content's height.
+    useLayoutEffect(() => {
+        const footer = footerRef.current!;
+        const wrap = wrapRef.current!;
+        const fit = () => {
+            footer.style.paddingBottom = "";
+            const { paddingTop, paddingBottom } = getComputedStyle(footer);
+            const height =
+                parseFloat(paddingTop) +
+                wrap.getBoundingClientRect().height +
+                parseFloat(paddingBottom);
+            footer.style.paddingBottom = `${parseFloat(paddingBottom) + Math.ceil(height / 5) * 5 - height}px`;
+        };
+        fit();
+        const observer = new ResizeObserver(fit);
+        observer.observe(wrap);
+        return () => observer.disconnect();
+    }, []);
     return (
-        <footer className="bg-page relative isolate pt-[70px] pb-11">
+        <footer
+            ref={footerRef}
+            className="bg-page relative isolate pt-[70px] pb-11"
+        >
             {/* Inverse of the page: plain outside the sheet, ruled inside it.
                 Starts 1px up so its top border shares a row with the last outside line. */}
-            <div className="border-line bg-sheet pointer-events-none absolute -top-px right-(--rule-x) bottom-0 left-(--rule-x) -z-10 border-x border-t bg-(image:--ruling-down) bg-size-[100%_5px] bg-origin-border [image-rendering:pixelated]" />
-            <div className="wrap">
+            <div className="border-line bg-sheet pointer-events-none absolute -top-px right-(--rule-x) bottom-0 left-(--rule-x) -z-10 border-x border-y bg-(image:--ruling-down) bg-size-[100%_5px] bg-origin-border [image-rendering:pixelated]" />
+            <div ref={wrapRef} className="wrap">
                 <div className="grid grid-cols-2 gap-[30px] lg:grid-cols-[1.4fr_1fr_1fr_1fr] lg:gap-10">
                     <div className="col-span-2 lg:col-span-1">
                         <h4 className={heading}>Contact</h4>
