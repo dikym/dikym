@@ -612,7 +612,7 @@
     outline: 2px solid var(--arcade-accent);
     outline-offset: 4px;
 }
-/* ROM rows 0–31: header cells at y=8 ($241E), scores at y=24 ($271C, $2F1C, $391C). */
+/* Screen rows 0–31: labels at y=8, values at y=24. */
 .arcade-scoreboard {
     position: relative;
     width: 448px;
@@ -762,7 +762,7 @@
     background: transparent;
     color: var(--ink-2);
 }
-/* ROM rows 240–255; x from $2501, $2701 and $3501 (docs/quorzak.md). */
+/* Screen rows 240–255: lives digit from x=9, spare ships from x=24, FREE PLAY from x=137. */
 .arcade-status {
     position: relative;
     width: 448px;

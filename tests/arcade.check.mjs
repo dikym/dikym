@@ -1022,7 +1022,7 @@ try {
                 credit: [credit.left, credit.top, credit.height], label: label.height};
         })()`);
         const row = (hud.column * 7) / 6;
-        // ROM rows: line 239, cannons 240–247, text cap 241–247 (docs/quorzak.md).
+        // Screen rows: line 239, spare ships 240–247, text cap 241–247.
         near(hud.ship[1], hud.bottom, "cannons sit flush under the line");
         near(
             hud.digit[1],
@@ -1047,7 +1047,7 @@ try {
         near(
             hud.credit[0],
             hud.left + 137 * hud.column,
-            "CREDIT ink at ROM x=137"
+            "FREE PLAY ink at x=137"
         );
         const board = await evaluate(`(() => {
             const field = document.querySelector('canvas').getBoundingClientRect();
@@ -1059,7 +1059,7 @@ try {
                 fonts: [...document.querySelectorAll('.arcade-label, .arcade-scoreboard b')].map(node => getComputedStyle(node).fontSize)};
         })()`);
         const boardRow = (board.column * 7) / 6;
-        // ROM rows 0–31: header cells at y=8 ($241E), scores at y=24 ($271C, $2F1C).
+        // Screen rows 0–31: labels at y=8, values at y=24.
         near(
             board.board,
             board.top - 32 * boardRow,

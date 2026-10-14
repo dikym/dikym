@@ -132,7 +132,7 @@ export const newGame = (): Game => {
     );
     // Cold reset: the ROM clears memory and starts a game within a few frames.
     for (let frames = 0; memory[0x2000] !== 1; frames++) {
-        if (frames === 30) throw new Error("Quorzak ROM did not start");
+        if (frames === 4) throw new Error("Quorzak ROM did not start");
         frame(g);
     }
     g.events.length = 0;

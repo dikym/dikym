@@ -195,13 +195,36 @@ assert.deepEqual(SCORE_GLYPHS["8"].slice(0, 7), [
     assert.ok(litPixel(g, 36, 196), "shield redrawn");
 }
 
-// Aliens reaching the ship row end the game.
+// Aliens reaching the ship row (y 216) end the game; just above it they do not.
 {
     const g = newGame();
     g.memory[0x2006] = 208;
+    run(g, 120);
+    assert.equal(g.over, false, "rack just above the ship row");
+    g.memory[0x2006] = 216;
     for (let i = 0; i < 120 && !g.over; i++) tick(g);
     assert.equal(g.over, true);
     assert.equal(g.memory[0x2000], 2);
+}
+
+// A wave change never takes longer than a frame: no RST 1 tick is lost.
+{
+    const g = newGame();
+    let missed = 0;
+    const raise = g.cpu.interrupt.bind(g.cpu);
+    g.cpu.interrupt = vector => {
+        if (vector === 8 && !g.cpu.save().inte) missed++;
+        raise(vector);
+    };
+    g.memory.fill(0, 0x2010, 0x2010 + 55);
+    run(g, 200);
+    assert.equal(g.wave, 2);
+    assert.equal(missed, 0, "ticks lost to the wave change");
+    assert.ok(litPixel(g, 36, 196), "shields redrawn");
+    assert.ok(
+        Array.from({ length: W }, (_, x) => litPixel(g, x, 144)).some(Boolean),
+        "new rack drawn"
+    );
 }
 
 // Puts the ship so its shot rises through column `col` (sprite centre is cell x + 7).
@@ -538,5 +561,23 @@ UFO_TABLE.forEach((tens, count) => {
     run(g, 65);
     assert.equal(g.ufoPoints, null);
 });
+
+// A shot that hits the UFO's score bursts there instead of vanishing.
+{
+    const g = newGame();
+    g.memory[S.UFOTMR] = 1;
+    g.memory[S.UFOTMR + 1] = 0;
+    tick(g, IDLE, { ufo: false });
+    g.memory.set([1, g.memory[S.UFOX] + 8, 52], S.SHOTON);
+    for (let i = 0; i < 60 && g.memory[S.UFOON] !== 3; i++) tick(g);
+    assert.equal(g.memory[S.UFOON], 3, "score shown");
+    g.memory.set([1, g.memory[S.UFOX] + 11, 56], S.SHOTON);
+    let burst = 0;
+    for (let i = 0; i < 10 && g.memory[S.SHOTON]; i++) {
+        tick(g);
+        burst = Math.max(burst, g.memory[S.SBT]);
+    }
+    assert.ok(burst > 0, "burst on the score");
+}
 
 console.log("quorzak: ok");

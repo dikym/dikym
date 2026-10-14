@@ -39,8 +39,9 @@ The browser checks (`tests/*.check.mjs`) need Vite and Chromium started with
   seconds, about 59.542 Hz. `RST 1` is raised at scanline 96 and `RST 2` at 224.
 - `RST 1` runs the whole game tick. `RST 2` only re-enables interrupts.
   `machine.ts` ends each frame as `RST 1` is raised, so a step executes one complete
-  tick and the UI never samples VRAM halfway through one. The heaviest measured tick is
-  about 23k of the frame's 33k cycles.
+  tick and the UI never samples VRAM halfway through one. The heaviest tick is about
+  28k of the frame's 33.5k cycles; a wave change wipes the screen over six ticks (four
+  VRAM quarters, the ground, then the shields and wave state) so no tick is lost.
 
 | Port | Direction | Meaning                                                                       |
 | ---- | --------- | ----------------------------------------------------------------------------- |
@@ -108,7 +109,7 @@ pixels in columns 2–13.
   Its score cycles `100 50 50 100 150 100 100 50 300 100 100 100 50 150 100 50` by shot
   count and shows for 64 ticks.
 - One extra ship at 1,500 points. The game ends with no ships left or when the rack's
-  bottom row reaches y 208.
+  bottom row reaches the ship row (top y 216).
 
 ## Fonts
 

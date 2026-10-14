@@ -65,6 +65,7 @@ SBY      EQU $2084
 PREVFIRE EQU $2085
 FIREEDGE EQU $2086
 BOMBIDX  EQU $2087      ; alien shot moved on the last tick
+WIPE     EQU $2088      ; 1-4 wiping VRAM quarters, 5 ground, 6 shields and state, 0 playing
 
         PUBLIC PX, PSTATE, SHOTON, SHOTX, SHOTY, SHOTCNT, CURSOR, RELOAD
         PUBLIC UFOON, UFOX, UFOTMR, AEXT, ASHOTS, LIVECNT, SBT, DIR
@@ -122,6 +123,9 @@ NEWGAME:
 ; the first pass draws the rack one alien per tick, in place.
 NEWWAVE:
         CALL CLEARVRAM
+        CALL DRAWGROUND
+        CALL DRAWSHIELDS
+WAVESETUP:
         LXI H,ALIENS
         MVI B,55
 .alive: MVI M,1
@@ -160,8 +164,7 @@ NEWWAVE:
         STA RELOAD
         LXI H,1536
         SHLD UFOTMR
-        CALL DRAWSHIELDS
-        JMP DRAWGROUND
+        RET
 
 ; Zeroes VRAM with 3584 PUSHes; interrupts are off in every caller.
 CLEARVRAM:
@@ -423,6 +426,9 @@ ALIENBLIT:
 TICK:   LDA MODE
         CPI 1
         RNZ
+        LDA WIPE
+        ORA A
+        JNZ WIPESTEP
         CALL PLAYER
         LDA MODE
         CPI 1
@@ -603,8 +609,7 @@ PLAYERSHOT:
         JMP .shield     ; not an alien: a shield or debris
 .ufo:   LDA UFOON
         CPI 1
-        RNZ
-        JMP HITUFO
+        JZ HITUFO       ; else its explosion or score: burst there
 .shield: LDA SHOTY
         SUI 4
         MOV E,A
@@ -1269,6 +1274,9 @@ MARCH:  LDA PSTATE
         LDA MODE
         CPI 1
         RNZ
+        LDA WIPE
+        ORA A
+        RNZ             ; the wave ended: the next ticks wipe the screen
         LDA CURSOR
 .check: MOV C,A
         MVI B,0
@@ -1321,7 +1329,7 @@ STARTPASS:
         MOV E,A
         LDA GRIDY
         SUB E
-        CPI 208
+        CPI 209         ; bottom row reaches the ship row (y 216)
         JNC GAMEOVER
         LDA DIR
         ORA A
@@ -1434,11 +1442,75 @@ SCAN:   LXI H,0
         STA LIVECNT
         RET
 
+; Starts the next wave. The screen is wiped over the next ticks so that no tick
+; outlasts a frame; play resumes once WAVESETUP has run.
 NEXTWAVE:
         LDA WAVE
         INR A
         STA WAVE
-        JMP NEWWAVE
+        MVI A,1
+        STA WIPE
+        XRA A
+        STA UFOON
+        STA UFOPTS
+        OUT SOUNDB
+        MVI A,$20       ; silence the UFO loop while play is suspended
+        OUT SOUNDA
+        RET
+
+; Clears one quarter of VRAM per tick (WIPE 1-4), draws the ground (5), then the
+; shields and the new wave's state (6).
+WIPESTEP:
+        CPI 5
+        JZ .ground
+        JNC .setup
+        ADD A
+        MOV E,A
+        MVI D,0
+        LXI H,WIPETOPS-2
+        DAD D
+        MOV E,M
+        INX H
+        MOV D,M         ; DE = end of this quarter; PUSH fills downwards
+        LXI H,0
+        DAD SP
+        SHLD SAVESP
+        XCHG
+        SPHL
+        LXI B,0
+        MVI E,56
+.loop:  PUSH B
+        PUSH B
+        PUSH B
+        PUSH B
+        PUSH B
+        PUSH B
+        PUSH B
+        PUSH B
+        PUSH B
+        PUSH B
+        PUSH B
+        PUSH B
+        PUSH B
+        PUSH B
+        PUSH B
+        PUSH B
+        DCR E
+        JNZ .loop
+        LHLD SAVESP
+        SPHL
+        LXI H,WIPE
+        INR M
+        RET
+.ground: LXI H,WIPE
+        INR M
+        JMP DRAWGROUND
+.setup: XRA A
+        STA WIPE
+        CALL DRAWSHIELDS
+        JMP WAVESETUP
+
+WIPETOPS: DW $2B00, $3200, $3900, $4000
 
 GAMEOVER:
         MVI A,2
