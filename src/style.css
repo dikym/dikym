@@ -463,10 +463,11 @@
     --arcade-screen-padding: clamp(12px, 3vw, 32px);
     /* Until the game exists to measure (fitArcadeToViewport), size the footer alien as the
        field will fit below the navbar: the panel is 4/3 of the field plus this chrome.
+       lvh, not dvh, so a phone's sliding toolbar does not resize it mid-scroll.
        shortcut: the chrome mirrors the panel layout, arcade.check catches drift. */
     --arcade-chrome: calc(133px + 2 * var(--arcade-control-gap));
     --arcade-height-width: calc(
-        (100dvh + 1px - var(--nav-bottom, 0px) - var(--arcade-chrome)) * 3 / 4
+        (100lvh + 1px - var(--nav-bottom, 0px) - var(--arcade-chrome)) * 3 / 4
     );
     position: relative;
     container-type: inline-size;

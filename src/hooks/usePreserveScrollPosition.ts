@@ -7,6 +7,12 @@ const viewportCenter = () => {
     return (navbarBottom + window.innerHeight) / 2;
 };
 
+// Touch browsers change the viewport height while their toolbars slide during a scroll;
+// refitting or restoring then fights the scroll, so there only a width change counts.
+export const viewportResized = (width: number, height: number) =>
+    window.innerWidth !== width ||
+    (window.innerHeight !== height && !matchMedia("(pointer: coarse)").matches);
+
 export const captureScrollPosition = (previousElement?: HTMLElement) => {
     const center = viewportCenter();
     let bounds: DOMRect | undefined;
@@ -81,12 +87,13 @@ export const usePreserveScrollPosition = () => {
         const previousAnchor = root.style.overflowAnchor;
         root.style.overflowAnchor = "none";
         let position = captureScrollPosition();
+        // A height change with the arcade in view waits for resize to refit it.
+        const pendingRefit = () =>
+            viewportResized(position.width, position.height) &&
+            (window.innerWidth !== position.width ||
+                !!position.element?.matches(".arcade-section"));
         const capture = () => {
-            if (
-                window.innerWidth === position.width &&
-                (window.innerHeight === position.height ||
-                    !position.element?.matches(".arcade-section"))
-            )
+            if (!pendingRefit())
                 position = captureScrollPosition(position.element);
         };
         const restore = () => {
@@ -100,12 +107,7 @@ export const usePreserveScrollPosition = () => {
             position = captureScrollPosition(position.element);
         };
         const resize = () => {
-            if (
-                window.innerWidth === position.width &&
-                (window.innerHeight === position.height ||
-                    !position.element?.matches(".arcade-section"))
-            )
-                return;
+            if (!pendingRefit()) return;
             restore();
         };
         const cancelRestore = () => {

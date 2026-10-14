@@ -26,6 +26,7 @@ import {
     captureScrollPosition,
     fitArcadeToViewport,
     scrollPositionTop,
+    viewportResized,
 } from "../../hooks/usePreserveScrollPosition";
 
 const ARRIVING_INVADER = COLS * 4 - 1;
@@ -148,10 +149,18 @@ const Quorzak: React.FC<QuorzakProps> = ({
         fit();
         const observer = new ResizeObserver(fit);
         observer.observe(panel);
-        window.addEventListener("resize", fit);
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+        const resize = () => {
+            if (!viewportResized(width, height)) return;
+            width = window.innerWidth;
+            height = window.innerHeight;
+            fit();
+        };
+        window.addEventListener("resize", resize);
         return () => {
             observer.disconnect();
-            window.removeEventListener("resize", fit);
+            window.removeEventListener("resize", resize);
         };
     }, []);
 

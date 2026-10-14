@@ -1961,6 +1961,26 @@ try {
             Math.abs(footerAlien - gameAlien) < 0.1,
             `${width}x${height}: footer alien ${footerAlien} matches the game's ${gameAlien}`
         );
+        if (!touch) continue;
+        // A phone's toolbar slides away mid-scroll: the taller viewport must not refit or jump.
+        await evaluate("window.scrollBy(0, -150)");
+        const before = await evaluate(
+            "[scrollY, document.querySelector('canvas').getBoundingClientRect().width]"
+        );
+        await send("Emulation.setDeviceMetricsOverride", {
+            width,
+            height: height + 76,
+            deviceScaleFactor: 1,
+            mobile: true,
+        });
+        await new Promise(resolve => setTimeout(resolve, 300));
+        assert.deepEqual(
+            await evaluate(
+                "[scrollY, document.querySelector('canvas').getBoundingClientRect().width]"
+            ),
+            before,
+            "a toolbar-sized height change keeps the scroll and the game size"
+        );
     }
     await send("Emulation.setTouchEmulationEnabled", { enabled: false });
     assert.deepEqual(errors, [], "browser must have no uncaught errors");
