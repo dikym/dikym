@@ -837,6 +837,16 @@ try {
         '!!document.querySelector(".arcade-status [aria-label=Playing]")'
     );
     await waitFor(`arcadeAudioContexts[0]?.state === 'running'`);
+    // iOS suspends the context on its own; the next key or touch must bring the sound back.
+    await evaluate("arcadeAudioContexts[0].suspend()");
+    await key("keyDown", "ArrowLeft", "ArrowLeft");
+    await key("keyUp", "ArrowLeft", "ArrowLeft");
+    await waitFor(`arcadeAudioContexts[0].state === 'running'`);
+    await evaluate("arcadeAudioContexts[0].suspend()");
+    await evaluate(
+        `document.querySelector('.arcade-section').dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerType: 'touch' }))`
+    );
+    await waitFor(`arcadeAudioContexts[0].state === 'running'`);
     await click(".arcade-sound");
     assert.equal(
         await evaluate(

@@ -293,6 +293,12 @@ export const createArcadeAudio = () => {
             last = [0, 0];
             active = true;
         },
+        // iOS suspends or interrupts the context (lock, app switch, another sound) and only
+        // a gesture may resume it, so every press in the game calls this.
+        wake: () => {
+            if (context.state !== "running")
+                void context.resume().catch(() => {});
+        },
         setMuted: (value: boolean) => {
             muted = value;
             update();

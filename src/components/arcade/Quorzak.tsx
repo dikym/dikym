@@ -517,6 +517,7 @@ const Quorzak: React.FC<QuorzakProps> = ({
 
     useEffect(() => {
         const onKey = (e: KeyboardEvent) => {
+            if (e.type === "keydown") audioRef.current?.wake();
             const action = KEYS[e.code];
             if (action && e.type === "keyup") {
                 setInput(action, `key:${e.code}`, false);
@@ -841,6 +842,8 @@ const Quorzak: React.FC<QuorzakProps> = ({
                     focusedAtPressRef.current = focusedRef.current;
                     touchAtPressRef.current = e.pointerType === "touch";
                 }}
+                // A touch counts as a gesture on release, when iOS lets audio resume.
+                onPointerUp={() => audioRef.current?.wake()}
                 // A click anywhere on the cabinet, except buttons and links, focuses the game.
                 // On touch screens, which have no Enter key, a tap in focus also starts it.
                 onClick={e => {
