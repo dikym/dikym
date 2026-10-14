@@ -43,7 +43,7 @@ const Navigation: React.FC<NavigationProps> = ({
             <nav className="fixed inset-x-0 top-0 z-50">
                 {/* Stacking as in the reference: frame (-10) < menu sheet (60) < bar content (70),
                     so the sheet's wipe covers the frame and uncovers it again on close */}
-                <div className="border-line bg-sheet absolute inset-y-0 right-(--rule-x) left-(--rule-x) -z-10 border-x border-b" />
+                <div className="border-line bg-sheet absolute inset-y-0 right-(--rule-x) left-(--rule-x) -z-10 border-x border-y" />
                 <div className="wrap relative z-[70] flex items-center gap-3 py-[11px] min-[961px]:gap-[30px] min-[961px]:py-[15px]">
                     <button
                         onClick={() => onScrollToSection("home")}
