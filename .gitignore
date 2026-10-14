@@ -23,5 +23,9 @@ dist-ssr
 *.sln
 *.sw?
 
-# Superpowers plans/specs
+# Superpowers plans/specs and session files
 docs/superpowers/
+.superpowers/
+
+# Husky's generated scripts; .husky/pre-commit stays tracked
+.husky/_/
