@@ -39,9 +39,11 @@ The browser checks (`tests/*.check.mjs`) need Vite and Chromium started with
   seconds, about 59.542 Hz. `RST 1` is raised at scanline 96 and `RST 2` at 224.
 - `RST 1` runs the whole game tick. `RST 2` only re-enables interrupts.
   `machine.ts` ends each frame as `RST 1` is raised, so a step executes one complete
-  tick and the UI never samples VRAM halfway through one. The heaviest tick is about
-  28k of the frame's 33.5k cycles; a wave change wipes the screen over six ticks (four
-  VRAM quarters, the ground, then the shields and wave state) so no tick is lost.
+  tick and the UI never samples VRAM halfway through one. Under busy play the median
+  tick is about 11k of the frame's 33.5k cycles and the heaviest about 18k (54%); a wave
+  change wipes the screen over seven ticks (four VRAM quarters, the ground, two shields,
+  then two shields and the wave state). `tests/quorzak.check.ts` keeps every tick under
+  26k cycles.
 
 | Port | Direction | Meaning                                                                       |
 | ---- | --------- | ----------------------------------------------------------------------------- |

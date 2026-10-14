@@ -580,4 +580,39 @@ UFO_TABLE.forEach((tens, count) => {
     assert.ok(burst > 0, "burst on the score");
 }
 
+// Tick budget: under busy scripted play every tick stays well inside a frame
+// (33,536 cycles), leaving headroom like the original's short interrupt work.
+{
+    const isr = SYMBOLS.ISR;
+    let g = newGame();
+    let worst = 0;
+    const measure = (game: Game) => {
+        const steps = game.cpu.steps.bind(game.cpu);
+        let start = -1;
+        game.cpu.steps = (cycles: number) => {
+            const end = game.cpu.T() + cycles;
+            while (game.cpu.T() < end) {
+                const pc = game.cpu.status().pc;
+                if (pc === 0x08) start = game.cpu.T();
+                steps(1);
+                if (pc === isr + 10 && start >= 0) {
+                    worst = Math.max(worst, game.cpu.T() - start);
+                    start = -1;
+                }
+            }
+        };
+    };
+    measure(g);
+    for (let i = 0; i < 2000; i++) {
+        if (g.over) measure((g = newGame()));
+        step(
+            g,
+            { fire: i % 100 < 50, left: i % 240 < 80, right: i % 240 > 160 },
+            FRAME_S
+        );
+        if (i % 700 === 300) g.memory.fill(0, 0x2010, 0x2010 + 55);
+    }
+    assert.ok(worst < 26000, `heaviest tick ${worst} cycles`);
+}
+
 console.log("quorzak: ok");

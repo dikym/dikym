@@ -65,10 +65,10 @@ SBY      EQU $2084
 PREVFIRE EQU $2085
 FIREEDGE EQU $2086
 BOMBIDX  EQU $2087      ; alien shot moved on the last tick
-WIPE     EQU $2088      ; 1-4 wiping VRAM quarters, 5 ground, 6 shields and state, 0 playing
+WIPE     EQU $2088      ; 1-4 wiping VRAM quarters, 5 ground, 6-7 shields and state, 0 playing
 
         PUBLIC PX, PSTATE, SHOTON, SHOTX, SHOTY, SHOTCNT, CURSOR, RELOAD
-        PUBLIC UFOON, UFOX, UFOTMR, AEXT, ASHOTS, LIVECNT, SBT, DIR
+        PUBLIC UFOON, UFOX, UFOTMR, AEXT, ASHOTS, LIVECNT, SBT, DIR, ISR
 
 ; ---- Vectors
         ORG 0
@@ -208,10 +208,12 @@ DRAWGROUND:
         RET
 
 DRAWSHIELDS:
-        XRA A
-        STA BLITOP
         LXI H,SHIELDX
         MVI C,4
+; Draws C shields from the SHIELDX entry at HL.
+SHIELDSFROM:
+        XRA A
+        STA BLITOP
 .loop:  MOV D,M
         PUSH H
         PUSH B
@@ -709,6 +711,12 @@ HITUFO: MVI A,1
 ; one step behind GRIDX; scanning all 55 would overrun the tick.
 ; Out: NZ when an alien was hit.
 HITALIEN:
+        LDA GRIDY       ; below the bottom row and one descent step, no alien
+        ADI 16
+        MOV B,A
+        LDA SHOTY
+        CMP B
+        JNC .none
         LDA GRIDX
         MOV B,A
         LDA SHOTX
@@ -1402,44 +1410,63 @@ STARTPASS:
         STA PULSEB
         RET
 
-; Out: LIVECNT, B = leftmost live column, C = rightmost, D = lowest live row.
-SCAN:   LXI H,0
-        SHLD TMPA       ; TMPA = row, TMPA+1 = column
-        MVI B,10
-        MVI C,0
-        MVI D,4
+; Out: LIVECNT; when any alien lives, B = leftmost live column, C = rightmost,
+; D = lowest live row. Counts in registers and stops each edge search early.
+SCAN:   LXI H,ALIENS
+        MVI B,55
         MVI E,0
-        LXI H,ALIENS
-.loop:  MOV A,M
+.count: MOV A,M
         ORA A
-        JZ .next
+        JZ .dead
         INR E
-        LDA TMPA+1
-        CMP B
-        JNC .nomin
-        MOV B,A
-.nomin: CMP C
-        JC .nomax
-        MOV C,A
-.nomax: LDA TMPA
-        CMP D
-        JNC .next
-        MOV D,A
-.next:  INX H
-        LDA TMPA+1
-        INR A
-        CPI 11
-        JNZ .same
-        LDA TMPA
-        INR A
-        STA TMPA
-        XRA A
-.same:  STA TMPA+1
-        MOV A,L
-        CPI LOW(ALIENS+55)
-        JNZ .loop
+.dead:  INX H
+        DCR B
+        JNZ .count
         MOV A,E
         STA LIVECNT
+        ORA A
+        RZ
+        MVI B,0
+.left:  MOV A,B
+        CALL COLUMN
+        JNZ .rights
+        INR B
+        JMP .left
+.rights: MVI C,10
+.right: MOV A,C
+        CALL COLUMN
+        JNZ .rows
+        DCR C
+        JMP .right
+.rows:  MVI D,0
+        LXI H,ALIENS
+.row:   MVI E,11
+.cell:  MOV A,M
+        ORA A
+        RNZ
+        INX H
+        DCR E
+        JNZ .cell
+        INR D
+        JMP .row
+
+; In: A = column. Out: NZ when an alien in it lives. Keeps B, C, D.
+COLUMN: ADI LOW(ALIENS)
+        MOV L,A
+        MVI H,HIGH(ALIENS)
+        PUSH D
+        LXI D,11
+        MOV A,M
+        DAD D
+        ORA M
+        DAD D
+        ORA M
+        DAD D
+        ORA M
+        DAD D
+        ORA M
+        POP D
+        ORA A
         RET
 
 ; Starts the next wave. The screen is wiped over the next ticks so that no tick
@@ -1458,12 +1485,12 @@ NEXTWAVE:
         OUT SOUNDA
         RET
 
-; Clears one quarter of VRAM per tick (WIPE 1-4), draws the ground (5), then the
-; shields and the new wave's state (6).
+; Clears one quarter of VRAM per tick (WIPE 1-4), draws the ground (5), two
+; shields (6), then the other two and the new wave's state (7).
 WIPESTEP:
         CPI 5
         JZ .ground
-        JNC .setup
+        JNC .shields
         ADD A
         MOV E,A
         MVI D,0
@@ -1505,9 +1532,18 @@ WIPESTEP:
 .ground: LXI H,WIPE
         INR M
         JMP DRAWGROUND
+.shields: CPI 6
+        JNZ .setup
+        LXI H,WIPE
+        INR M
+        LXI H,SHIELDX
+        MVI C,2
+        JMP SHIELDSFROM
 .setup: XRA A
         STA WIPE
-        CALL DRAWSHIELDS
+        LXI H,SHIELDX+2
+        MVI C,2
+        CALL SHIELDSFROM
         JMP WAVESETUP
 
 WIPETOPS: DW $2B00, $3200, $3900, $4000
