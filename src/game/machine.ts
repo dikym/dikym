@@ -192,7 +192,9 @@ export const pixelColor = (x: number, y: number): string =>
         : (y >= 184 && y < 240) || (y >= 240 && x >= 16 && x < 134)
           ? "#20ff20"
           : "#ffffff";
+// Column-major: 32 bytes per x, bit 0 of byte 0 is the bottom row (y = 255).
+export const VRAM = 0x2400;
 export const litPixel = (g: Game, x: number, y: number): boolean =>
     Boolean(
-        g.memory[0x2400 + x * 32 + ((255 - y) >> 3)] & (1 << ((255 - y) & 7))
+        g.memory[VRAM + x * 32 + ((255 - y) >> 3)] & (1 << ((255 - y) & 7))
     );

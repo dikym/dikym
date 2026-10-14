@@ -15,8 +15,8 @@ import {
     FIELD_BOTTOM,
     FRAME_S,
     PIXEL_ASPECT,
+    VRAM,
     W,
-    litPixel,
     pixelColor,
     newGame,
     step,
@@ -581,8 +581,12 @@ const Quorzak: React.FC<QuorzakProps> = ({
                 image.data[i] = green ? 32 : 255;
                 image.data[i + 1] = red ? 32 : 255;
                 image.data[i + 2] = red || green ? 32 : 255;
+                image.data[i + 3] = 255;
             }
         }
+        // Each frame copies a pixel's lit color in or clears it to transparent.
+        const pixels = new Uint32Array(image.data.buffer);
+        const lit = pixels.slice();
 
         let frame = 0;
         let accumulator = 0;
@@ -639,21 +643,33 @@ const Quorzak: React.FC<QuorzakProps> = ({
             // The attract screen ends on the ground line; mobile compositing can leak that edge row.
             // Elsewhere the ROM's screens keep the line.
             const groundHidden = !startedRef.current && standaloneRef.current;
+            // One VRAM byte is 8 pixels of a column; bit k of byte b is y = 255 - 8b - k.
             for (let x = 0; x < W; x++)
-                for (let y = FIELD_TOP; y < FIELD_BOTTOM; y++) {
-                    const scorePixel =
-                        points &&
-                        y >= 40 &&
-                        y < 48 &&
-                        x >= points.x &&
-                        x < points.x + 24;
-                    image.data[((y - FIELD_TOP) * W + x) * 4 + 3] =
-                        !scorePixel &&
-                        !(groundHidden && y === FIELD_BOTTOM - 1) &&
-                        litPixel(s, x, y)
-                            ? 255
-                            : 0;
+                for (
+                    let b = (256 - FIELD_BOTTOM) >> 3;
+                    b < (256 - FIELD_TOP) >> 3;
+                    b++
+                ) {
+                    const bits = s.memory[VRAM + x * 32 + b];
+                    for (let k = 0; k < 8; k++) {
+                        const i = (255 - FIELD_TOP - b * 8 - k) * W + x;
+                        pixels[i] = bits & (1 << k) ? lit[i] : 0;
+                    }
                 }
+            // The UFO score is an HTML overlay; clear the ROM's copy beneath it.
+            if (points)
+                for (let y = 40; y < 48; y++)
+                    pixels.fill(
+                        0,
+                        (y - FIELD_TOP) * W + points.x,
+                        (y - FIELD_TOP) * W + Math.min(points.x + 24, W)
+                    );
+            if (groundHidden)
+                pixels.fill(
+                    0,
+                    (FIELD_BOTTOM - 1 - FIELD_TOP) * W,
+                    (FIELD_BOTTOM - FIELD_TOP) * W
+                );
             ctx.putImageData(image, 0, 0);
             if (!startedRef.current) {
                 for (const inv of s.invaders) {
