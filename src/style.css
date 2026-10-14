@@ -522,10 +522,6 @@
 .arcade-trigger:is(:hover, :focus-visible) .crab-frame:last-child {
     animation-delay: -0.3s;
 }
-.arcade-trigger:active svg {
-    transform: scale(0.9);
-    transform-origin: bottom center;
-}
 @keyframes arcade-march {
     0%,
     100% {
