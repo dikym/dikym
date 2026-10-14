@@ -1239,6 +1239,11 @@ const Quorzak: React.FC<QuorzakProps> = ({
                         8080 assembly and run by a browser-based 8080 emulator.
                     </p>
                     <p>
+                        Its gameplay is heavily inspired by Space Invaders
+                        (Taito, 1978). Quorzak is not affiliated with or
+                        endorsed by Taito.
+                    </p>
+                    <p>
                         Third-party licenses:{" "}
                         <a href="/licenses/8080js.txt">8080js</a>,{" "}
                         <a href="/fonts/quorzak/license.txt">font</a> (“Space
