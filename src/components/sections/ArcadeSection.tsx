@@ -1,4 +1,10 @@
-import { useCallback, useLayoutEffect, useRef, useState } from "react";
+import {
+    useCallback,
+    useEffect,
+    useLayoutEffect,
+    useRef,
+    useState,
+} from "react";
 import AlienSprite from "../arcade/AlienSprite";
 import arcadeUrl from "virtual:arcade-url";
 import {
@@ -25,12 +31,8 @@ const loadGame = () =>
             throw error;
         }
     ));
-const prepare = () => {
+const prepare = () =>
     void loadGame().catch(error => console.error("Arcade preload:", error));
-    void document.fonts
-        .load('14px "Quorzak"')
-        .catch(error => console.error("Arcade font preload:", error));
-};
 
 const ArcadeSection = () => {
     const [GameComponent, setComponent] = useState(() => preparedComponent);
@@ -49,6 +51,12 @@ const ArcadeSection = () => {
         },
         []
     );
+    // The font is ~3 KB gzipped: load it with the page, so the error bubble has it offline too.
+    useEffect(() => {
+        void document.fonts
+            .load('14px "Quorzak"')
+            .catch(error => console.error("Arcade font preload:", error));
+    }, []);
     // The footer alien sizes itself like the game, which fits below the navbar.
     useLayoutEffect(() => {
         const nav = document.querySelector("header > nav");
