@@ -31,6 +31,7 @@ const SkillCard: React.FC<SkillCardProps> = ({ category }) => {
                             <img
                                 src={`icons/${skill.logo}`}
                                 alt={`${skill.name} logo`}
+                                loading="lazy"
                                 className={`h-[48cqw] w-auto max-w-[80cqw] object-contain scheme-light dark:scheme-dark ${
                                     [
                                         "go-fiber.svg",
