@@ -35,8 +35,8 @@ FRAME    EQU $2058
 PDX      EQU $2059      ; this pass's x step (two's complement)
 PDY      EQU $205A      ; this pass's y step
 NOTE     EQU $205B
-RELOAD   EQU $205C
-NEXTSHOT EQU $205D
+FIREWAIT EQU $205C      ; ticks after a respawn before aliens may fire
+TWSKIP   EQU $205D      ; 1: the twist skips its next firing turn
 COLIDX   EQU $205E
 EXTRA    EQU $205F
 UFOON    EQU $2060      ; 0 none, 1 flying, 2 exploding, 3 score shown
@@ -66,9 +66,12 @@ PREVFIRE EQU $2085
 FIREEDGE EQU $2086
 BOMBIDX  EQU $2087      ; alien shot moved on the last tick
 WIPE     EQU $2088      ; 1-4 wiping VRAM quarters, 5 ground, 6-7 shields and state, 0 playing
+ASTEPS   EQU $2089      ; 3 alien shot step counts
+UFODUE   EQU $208C      ; 1: the UFO waits for the beads shot to end
 
-        PUBLIC PX, PSTATE, SHOTON, SHOTX, SHOTY, SHOTCNT, CURSOR, RELOAD
+        PUBLIC PX, PSTATE, SHOTON, SHOTX, SHOTY, SHOTCNT, CURSOR, FIREWAIT
         PUBLIC UFOON, UFOX, UFOTMR, AEXT, ASHOTS, LIVECNT, SBT, DIR, ISR
+        PUBLIC ASTEPS, TWSKIP, UFODUE, BOMBIDX
 
 ; ---- Vectors
         ORG 0
@@ -158,10 +161,11 @@ WAVESETUP:
         STA ASHOTS
         STA ASHOTS+4
         STA ASHOTS+8
+        STA UFODUE
         MVI A,55
         STA LIVECNT
-        MVI A,48
-        STA RELOAD
+        MVI A,1
+        STA TWSKIP
         LXI H,1536
         SHLD UFOTMR
         RET
@@ -498,6 +502,8 @@ PLAYER: LDA PSTATE
         JZ GAMEOVER
         MVI A,16
         STA PX
+        MVI A,48        ; as in the original, aliens hold fire for 48 ticks
+        STA FIREWAIT
         RET
 .unexplode:
         MVI A,1
@@ -836,38 +842,24 @@ ADDSCORE:
         ORI 16
         STA PULSEA
         RET
-; Moves one alien shot per tick, in turn, then fires one when the reload runs out.
+; Moves the alien shot whose turn it is, or tries to fire it when it is idle. As
+; in the original, a shot fires only when every other shot in flight has made
+; more steps than the reload rate, so the rate is counted in steps, not ticks.
 ALIENSHOTS:
-        LDA BOMBIDX
+        LDA PSTATE
+        ORA A
+        JNZ .turn0
+        LXI H,FIREWAIT
+        ORA M
+        JZ .turn0
+        DCR M
+.turn0: LDA BOMBIDX
         INR A
         CPI 3
         JC .turn
         XRA A
 .turn:  STA BOMBIDX
-        ADD A
-        ADD A
-        ADI LOW(ASHOTS)
-        MOV L,A
-        MVI H,HIGH(ASHOTS)
-        MOV A,M
-        ORA A
-        CNZ BOMBSTEP
-        LDA PSTATE
-        ORA A
-        RNZ
-        LXI H,RELOAD
-        DCR M
-        RNZ
-        CALL RELOADTIME
-        STA RELOAD
-        LDA NEXTSHOT
         MOV B,A
-        INR A
-        CPI 3
-        JC .type
-        XRA A
-.type:  STA NEXTSHOT
-        MOV A,B
         ADD A
         ADD A
         ADI LOW(ASHOTS)
@@ -875,7 +867,61 @@ ALIENSHOTS:
         MVI H,HIGH(ASHOTS)
         MOV A,M
         ORA A
+        JNZ BOMBSTEP
+        LDA PSTATE
+        LXI H,FIREWAIT
+        ORA M
         RNZ
+        MOV A,B
+        ORA A
+        JNZ .beads
+        LXI H,TWSKIP
+        ORA M
+        MVI M,0
+        RNZ
+        JMP .ready
+.beads: CPI 2
+        JNZ .ready
+        LDA UFODUE      ; the beads shot shares the UFO's task
+        LXI H,UFOON
+        ORA M
+        RNZ
+.ready: CALL RELOADTIME
+        MOV C,A
+        MVI E,0
+.other: LDA BOMBIDX
+        CMP E
+        JZ .next
+        MOV A,E
+        ADD A
+        ADD A
+        ADI LOW(ASHOTS)
+        MOV L,A
+        MVI H,HIGH(ASHOTS)
+        MOV A,M
+        ORA A
+        JZ .next        ; idle
+        MOV A,E
+        ADI LOW(ASTEPS)
+        MOV L,A
+        MVI H,HIGH(ASTEPS)
+        MOV A,M
+        ORA A
+        JZ .next        ; not moved yet
+        CMP C
+        RC              ; too few steps since it fired
+        RZ
+.next:  INR E
+        MOV A,E
+        CPI 3
+        JC .other
+        LDA BOMBIDX
+        MOV B,A
+        ADD A
+        ADD A
+        ADI LOW(ASHOTS)
+        MOV L,A
+        MVI H,HIGH(ASHOTS)
         MOV A,B
         ORA A
         JNZ .table
@@ -922,7 +968,19 @@ ALIENSHOTS:
         DCR B
         JNZ .find
         RET
-.fire:  CALL ALIENXY
+.fire:  LDA BOMBIDX      ; a new shot starts with one step, so it holds the others
+        MOV E,A
+        ORA A
+        JNZ .steps
+        INR A           ; the twist skips its first turn after this shot
+        STA TWSKIP
+.steps: MVI D,HIGH(ASTEPS)
+        MOV A,E
+        ADI LOW(ASTEPS)
+        MOV E,A
+        MVI A,1
+        STAX D
+        CALL ALIENXY
         MVI M,1
         INX H
         MOV A,D
@@ -946,6 +1004,13 @@ ALIENSHOTS:
 BOMBSTEP:
         CPI 2
         JZ .fade
+        PUSH H
+        LDA BOMBIDX
+        ADI LOW(ASTEPS)
+        MOV L,A
+        MVI H,HIGH(ASTEPS)
+        INR M
+        POP H
         MVI A,1
         STA BLITOP
         CALL BOMBBLIT
@@ -1171,7 +1236,10 @@ UFO:    LDA UFOON
         LDA UFOX
         STA UFOPX
         RET
-.wait:  LHLD UFOTMR
+.wait:  LDA UFODUE
+        ORA A
+        JNZ .due
+        LHLD UFOTMR
         DCX H
         SHLD UFOTMR
         MOV A,H
@@ -1182,6 +1250,12 @@ UFO:    LDA UFOON
         LDA LIVECNT
         CPI 8
         RC
+        MVI A,1
+        STA UFODUE
+.due:   LDA ASHOTS+8    ; like the original, wait for the beads shot to end
+        ORA A
+        RNZ
+        STA UFODUE
         LDA SHOTCNT
         ANI 1
         STA UFODIR
@@ -1578,7 +1652,7 @@ ROWGFX:  DW DOME, DOME, TWIN, TWIN, SPIRE
 NOTEBITS: DB 1, 2, 4, 8
 ROWPTS:  DB $10, $10, $20, $20, $30
 COLTAB:  DB 5, 9, 2, 7, 0, 10, 3, 8, 6, 1, 4, 9, 2, 10, 7, 0
-RELOADS: DB $30, 7, $20, 8, $10, 11, $02, 16, $00, 48
+RELOADS: DB $31, 7, $21, 8, $11, 11, $03, 16, $00, 48   ; steps; score MSB up to $02 gets 48
 ; UFO kind per shot count (0: 50, 1: 100, 2: 150, 3: 300 points).
 UFOSC:   DB 1, 0, 0, 1, 2, 1, 1, 0, 3, 1, 1, 1, 0, 2, 1, 0
 ; Per kind: points/10, BCD low, BCD high, three FONT indexes (10 = space).

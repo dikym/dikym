@@ -24,7 +24,7 @@ interface Quiet {
 }
 // Keeps alien fire and the UFO away so a check sees only what it drives.
 const quiet = (g: Game, { bombs = true, ufo = true }: Quiet = {}) => {
-    if (bombs) g.memory[S.RELOAD] = 255;
+    if (bombs) g.memory[S.FIREWAIT] = 255;
     if (ufo) g.memory[S.UFOTMR + 1] = 255;
 };
 const tick = (g: Game, input = IDLE, options: Quiet = {}) => {
@@ -402,6 +402,89 @@ const shoot = (g: Game) => {
         [during, x],
         "rack waits while the ship explodes"
     );
+}
+
+// As in the original, an alien shot fires only when every other shot in flight has
+// made more steps than the reload rate: 48 up to 299 points, 16 from 300.
+{
+    const fires = (scoreHigh: number, steps: number) => {
+        const g = newGame();
+        run(g, 60);
+        g.memory[0x2002] = scoreHigh;
+        g.memory[S.FIREWAIT] = 0;
+        g.memory.set([1, 210, 40, 0], S.ASHOTS + 4);
+        g.memory[S.ASTEPS + 1] = steps;
+        let fired = false;
+        for (let i = 0; i < 12; i++) {
+            tick(g, IDLE, { bombs: false });
+            fired ||= !!(g.memory[S.ASHOTS] || g.memory[S.ASHOTS + 8]);
+        }
+        return fired;
+    };
+    assert.ok(!fires(0x02, 20), "48 steps at 299 points");
+    assert.ok(fires(0x02, 49), "fires once the other shot passes 48 steps");
+    assert.ok(!fires(0x03, 10), "16 steps from 300 points");
+    assert.ok(fires(0x03, 17), "fires once the other shot passes 16 steps");
+}
+
+// After a lost ship, aliens hold fire for 48 ticks, as in the original.
+{
+    const g = newGame();
+    run(g, 60);
+    g.memory[S.PSTATE] = 1;
+    tick(g, IDLE, { bombs: false });
+    assert.equal(g.memory[S.PSTATE], 0, "ship back");
+    assert.equal(g.memory[S.FIREWAIT], 47);
+    for (let i = 0; i < 46; i++) {
+        tick(g, IDLE, { bombs: false });
+        assert.ok(
+            [0, 4, 8].every(o => !g.memory[S.ASHOTS + o]),
+            "no alien shot while aliens hold fire"
+        );
+    }
+}
+
+// Like the original rolling shot, the twist skips its first firing turn after each shot.
+{
+    const g = newGame();
+    run(g, 60);
+    g.memory[S.FIREWAIT] = 0;
+    g.memory[S.PX] = 100;
+    g.memory[S.TWSKIP] = 1;
+    g.memory[S.BOMBIDX] = 2;
+    tick(g, IDLE, { bombs: false });
+    assert.equal(g.memory[S.ASHOTS], 0, "first turn skipped");
+    assert.equal(g.memory[S.TWSKIP], 0);
+    g.memory[S.BOMBIDX] = 2;
+    tick(g, IDLE, { bombs: false });
+    assert.equal(g.memory[S.ASHOTS], 1, "twist fires on its next turn");
+    assert.equal(g.memory[S.TWSKIP], 1, "and will skip again after this shot");
+}
+
+// The beads shot shares the UFO's task, as in the original: the UFO waits for a
+// beads shot to end, and no beads shot fires while the UFO is out.
+{
+    const g = newGame();
+    run(g, 60);
+    g.memory.set([1, 100, 60, 0], S.ASHOTS + 8);
+    g.memory[S.UFOTMR] = 1;
+    g.memory[S.UFOTMR + 1] = 0;
+    tick(g, IDLE, { ufo: false });
+    assert.equal(g.memory[S.UFOON], 0, "UFO waits for the beads shot");
+    assert.equal(g.memory[S.UFODUE], 1);
+    g.memory.fill(0, S.ASHOTS + 8, S.ASHOTS + 12);
+    tick(g, IDLE, { ufo: false });
+    assert.equal(g.memory[S.UFOON], 1, "UFO starts once the shot ends");
+    g.memory[S.FIREWAIT] = 0;
+    for (let i = 0; i < 400 && g.memory[S.UFOON]; i++) {
+        tick(g, IDLE, { bombs: false, ufo: false });
+        assert.equal(
+            g.memory[S.ASHOTS + 8],
+            0,
+            "no beads shot with the UFO out"
+        );
+    }
+    assert.equal(g.memory[S.UFOON], 0, "UFO done");
 }
 
 // Alien shots take turns: each moves 4 px on every third tick.
