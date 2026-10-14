@@ -161,14 +161,14 @@
         line-height: 1.55;
         -webkit-font-smoothing: antialiased;
         overflow-x: clip;
+        position: relative;
     }
-    /* Plain sheet between the two frame rules. As tall as the large viewport: iOS Safari
-       draws the page under its floating toolbar, where a bottom: 0 sheet would stop short. */
+    /* Plain sheet between the two frame rules. Spans the whole document, not the viewport:
+       iOS Safari draws the page under its floating toolbar, where a fixed sheet stops short. */
     body::after {
         content: "";
-        position: fixed;
-        top: 0;
-        height: 100lvh;
+        position: absolute;
+        inset-block: 0;
         pointer-events: none;
         z-index: -1;
         left: var(--rule-x);
