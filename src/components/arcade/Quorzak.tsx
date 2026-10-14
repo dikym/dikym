@@ -308,16 +308,16 @@ const Quorzak: React.FC<QuorzakProps> = ({
             : gameRef.current!.invaders[ARRIVING_INVADER];
         const scale = canvas.width / W;
         const scaleY = scale * PIXEL_ASPECT;
-        const targetX = canvas.x + (invader.x + 3) * scale;
+        const targetX = canvas.x + (invader.x + 2) * scale;
         const targetY = canvas.y + (invader.y - FIELD_TOP) * scaleY;
-        const formation = new DOMRect(targetX, targetY, 9 * scale, 8 * scaleY);
+        const formation = new DOMRect(targetX, targetY, 11 * scale, 8 * scaleY);
         const triggerAlien =
             section.parentElement!.querySelector<SVGSVGElement>(
                 ".arcade-trigger svg"
             )!;
         const trigger = triggerAlien.getBoundingClientRect();
         const footerColor = getComputedStyle(triggerAlien).color;
-        const formationColor = pixelColor(invader.x + 3, invader.y);
+        const formationColor = pixelColor(invader.x + 2, invader.y);
         const source = closing
             ? (interrupted?.alien ?? formation)
             : new DOMRect(
@@ -440,11 +440,11 @@ const Quorzak: React.FC<QuorzakProps> = ({
             const destination = closing
                 ? triggerAlien.getBoundingClientRect()
                 : new DOMRect(
-                      field.x + ((invader.x + 3) * field.width) / W,
+                      field.x + ((invader.x + 2) * field.width) / W,
                       field.y +
                           (((invader.y - FIELD_TOP) * field.width) / W) *
                               PIXEL_ASPECT,
-                      (9 * field.width) / W,
+                      (11 * field.width) / W,
                       ((8 * field.width) / W) * PIXEL_ASPECT
                   );
             const color = getComputedStyle(alien);

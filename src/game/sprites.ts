@@ -18,9 +18,9 @@ export const ALIEN_SPRITES = [
     frames(SYMBOLS.TWIN),
     frames(SYMBOLS.DOME),
 ];
-// Twin's 9 drawn columns, for the alien that flies between page and game.
+// Twin's 11 drawn columns, for the alien that flies between page and game.
 export const TWIN = ALIEN_SPRITES[1].map(rows =>
-    rows.map(row => row.slice(3, 12))
+    rows.map(row => row.slice(2, 13))
 );
 export const PLAYER = sprite(SYMBOLS.SHIP, 13);
 export const UFO = sprite(SYMBOLS.UFOGFX, 15);

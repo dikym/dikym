@@ -501,11 +501,11 @@
 }
 .arcade-trigger svg {
     display: block;
-    width: calc(var(--arcade-field-width) * 9 / 224);
+    width: calc(var(--arcade-field-width) * 11 / 224);
     height: calc(var(--arcade-field-width) * 8 * 7 / (224 * 6));
-    /* The sprite's bottom row is empty: drop it below the edge so the legs stand on
-       the footer's 1px rule, which sits just above the footer box. */
-    margin-bottom: calc(var(--arcade-field-width) * -7 / (224 * 6) + 1px);
+    /* Lift the legs 1px so they stand on the footer's 1px rule, which sits just
+       above the footer box. */
+    margin-bottom: 1px;
 }
 .crab-frame:last-child {
     opacity: 0;

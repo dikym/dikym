@@ -1695,13 +1695,14 @@ UFOKINDS: DB 5, $50, $00, 10, 5, 0
         PUBLIC DOME, TWIN, SPIRE, SHIP, SHIPX, UFOGFX, UFOXGFX, AEXPLGFX
         PUBLIC SHIELD, PSHOT, BLASTGFX, BOMBGFX, FONT
 
-; Sprites: one byte per column, bit 7 = top row.
-DOME:   DB $00,$00,$1A,$3C,$6A,$6C,$FA,$FC,$FA,$6C,$6A,$3C,$1A,$00,$00,$00
-        DB $00,$00,$1C,$3A,$6C,$6A,$FC,$FA,$FC,$6A,$6C,$3A,$1C,$00,$00,$00
-TWIN:   DB $00,$00,$00,$72,$FC,$DA,$F0,$F8,$F0,$DA,$FC,$72,$00,$00,$00,$00
-        DB $00,$00,$00,$70,$FA,$DC,$F2,$F8,$F2,$DC,$FA,$70,$00,$00,$00,$00
-SPIRE:  DB $00,$00,$00,$00,$0C,$19,$3E,$E8,$3E,$19,$0C,$00,$00,$00,$00,$00
-        DB $00,$00,$00,$00,$0D,$1A,$3C,$E8,$3C,$1A,$0D,$00,$00,$00,$00,$00
+; Sprites: one byte per column, bit 7 = top row. Dome, Twin and Spire are 12, 11 and 8
+; columns wide, the sizes of the original's aliens.
+DOME:   DB $00,$00,$0D,$3A,$7D,$DA,$DC,$F8,$F8,$DC,$DA,$7D,$3A,$0D,$00,$00
+        DB $00,$00,$0A,$3D,$7A,$DD,$DA,$FC,$FC,$DA,$DD,$7A,$3D,$0A,$00,$00
+TWIN:   DB $00,$00,$62,$95,$38,$F8,$D0,$F8,$D0,$F8,$38,$95,$62,$00,$00,$00
+        DB $00,$00,$20,$54,$3A,$F9,$D0,$F8,$D0,$F9,$3A,$54,$20,$00,$00,$00
+SPIRE:  DB $00,$00,$00,$00,$0A,$1D,$14,$F8,$F8,$14,$1D,$0A,$00,$00,$00,$00
+        DB $00,$00,$00,$00,$08,$1C,$15,$FA,$FA,$15,$1C,$08,$00,$00,$00,$00
 SHIP:   DB $03,$07,$06,$0E,$1E,$7E,$FA,$7E,$1E,$0E,$06,$07,$03
 SHIPX:  DB $21,$03,$15,$07,$06,$1B,$29,$1B,$06,$07,$15,$03,$21
         DB $13,$06,$2B,$05,$1B,$09,$2A,$09,$1B,$05,$2B,$06,$13

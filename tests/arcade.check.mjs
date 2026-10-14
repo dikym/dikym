@@ -529,7 +529,7 @@ try {
         'document.querySelector(".arcade-trigger svg").getBoundingClientRect().width'
     );
     const legGap = await evaluate(
-        '(() => { const svg = document.querySelector(".arcade-trigger svg").getBoundingClientRect(); return document.querySelector("footer").getBoundingClientRect().top - (svg.bottom - svg.height / 8); })()'
+        '(() => { const svg = document.querySelector(".arcade-trigger svg").getBoundingClientRect(); return document.querySelector("footer").getBoundingClientRect().top - svg.bottom; })()'
     );
     assert.ok(
         Math.abs(legGap - 1) < 0.5,
@@ -657,7 +657,7 @@ try {
         Math.abs(
             alienWidth -
                 (await evaluate(
-                    'document.querySelector("canvas").getBoundingClientRect().width * 9 / 224'
+                    'document.querySelector("canvas").getBoundingClientRect().width * 11 / 224'
                 ))
         ) < 0.1,
         "trigger and game alien have the same size"
@@ -745,7 +745,7 @@ try {
         createHash("sha256")
             .update(Buffer.from(readyField.split(",")[1], "base64"))
             .digest("hex"),
-        "47d4860b1b329c81dadb3ed4658d6beb4306681540a444f27920d038162dabe1",
+        "be056fe49e025d0e5d9291fdf71f0db7286e968e983c71bc7e3ec39d03b7163b",
         "initial canvas PNG matches the native baseline"
     );
     assert.equal(
@@ -1009,7 +1009,7 @@ try {
         assert.ok(
             Math.abs(sizes.shipHeight - (sizes.fieldHeight * 8) / 208) < 0.02
         );
-        assert.ok(Math.abs(sizes.alien - 27 / 28) < 0.01);
+        assert.ok(Math.abs(sizes.alien - 33 / 28) < 0.01);
         assert.equal(sizes.livesFont, "16px");
         const near = (actual, expected, message) =>
             assert.ok(
@@ -1669,7 +1669,7 @@ try {
             const to = sprite.getBoundingClientRect().top;
             const box = sprite.getBoundingClientRect();
             // The sprite's bottom row is empty; its legs end one row above the box.
-            const gap = document.querySelector('footer').getBoundingClientRect().top - (box.bottom - box.height / 8);
+            const gap = document.querySelector('footer').getBoundingClientRect().top - box.bottom;
             animation.cancel();
             return {from, middle, to, edge, gap, overflow: getComputedStyle(button).overflowY};
         })()`);

@@ -11,7 +11,7 @@ const AlienSprite = ({
     <svg
         ref={ref}
         className={className}
-        viewBox="0 0 9 8"
+        viewBox="0 0 11 8"
         preserveAspectRatio="none"
         fill="currentColor"
         shapeRendering="crispEdges"

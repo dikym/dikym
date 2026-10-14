@@ -80,43 +80,43 @@ const padded = (pad: number, rows: string[]) =>
 assert.deepEqual(
     ALIEN_SPRITES[0][0],
     padded(4, [
-        "...X...",
-        "...X...",
-        "..XXX..",
-        ".XX.XX.",
-        "XXXXXXX",
-        "X.X.X.X",
-        "..X.X..",
-        ".X...X.",
+        "...XX...",
+        "...XX...",
+        "...XX...",
+        ".XXXXXX.",
+        "XX.XX.XX",
+        ".XX..XX.",
+        "X......X",
+        ".X....X.",
     ])
 );
 assert.deepEqual(
     ALIEN_SPRITES[1][1],
-    padded(3, [
-        ".XXXXXXX.",
-        "XXXXXXXXX",
-        "XX.XXX.XX",
-        "XXXXXXXXX",
-        ".XX.X.XX.",
-        "..X...X..",
-        ".X.X.X.X.",
-        ".........",
+    padded(2, [
+        "...XXXXX...",
+        ".X.XXXXX.X.",
+        "X.XX.X.XX.X",
+        ".XXXXXXXXX.",
+        "..XX.X.XX..",
+        ".X.......X.",
+        "..X.....X..",
+        "...X...X...",
     ])
 );
 assert.deepEqual(
     ALIEN_SPRITES[2][0],
     padded(2, [
-        "....XXX....",
-        "..XXXXXXX..",
-        ".XXXXXXXXX.",
-        "XX..XXX..XX",
-        "XXXXXXXXXXX",
-        ".X.X.X.X.X.",
-        "X.X.X.X.X.X",
-        "...........",
+        "...XXXXXX...",
+        "..XXXXXXXX..",
+        ".XX..XX..XX.",
+        ".XXXXXXXXXX.",
+        "XXXXXXXXXXXX",
+        "X.X.X..X.X.X",
+        ".X.X....X.X.",
+        "X.X......X.X",
     ])
 );
-assert.equal(TWIN[0][0], ".XXXXXXX.");
+assert.equal(TWIN[0][0], ".X.XXXXX.X.");
 assert.deepEqual(PLAYER, [
     "......X......",
     ".....XXX.....",
@@ -176,9 +176,9 @@ assert.deepEqual(SCORE_GLYPHS["8"].slice(0, 7), [
     assert.equal(rackPixels(), 0, "rack not drawn before the first tick");
     run(g, 1);
     assert.ok(litPixel(g, 32, 128), "bottom-left Dome drawn first");
-    assert.ok(!litPixel(g, 24 + 10 * 16 + 7, 80), "top-right Spire not yet");
+    assert.ok(!litPixel(g, 24 + 10 * 16 + 7, 68), "top-right Spire not yet");
     run(g, 54);
-    assert.ok(litPixel(g, 24 + 10 * 16 + 7, 80), "whole rack drawn");
+    assert.ok(litPixel(g, 24 + 10 * 16 + 7, 68), "whole rack drawn");
     assert.equal(g.memory[0x2005], 24, "the drawing pass does not move");
     const other = newGame();
     other.memory[0x2010] = 0;
