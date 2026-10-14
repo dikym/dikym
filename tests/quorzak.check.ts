@@ -363,6 +363,27 @@ const shoot = (g: Game) => {
     assert.ok(shieldPixels() < before, "shield lost pixels");
 }
 
+// As in the original, shots fired at one spot dig through a shield: 3 where it is
+// thin (over the arch), 4 where it is thick (a leg).
+for (const [px, shots] of [
+    [28, 4],
+    [36, 3],
+]) {
+    const g = newGame();
+    for (let i = 0; i < 400 && g.memory[S.PX] !== px; i++)
+        tick(g, g.memory[S.PX] < px ? RIGHT : LEFT);
+    const tunnel = () =>
+        Array.from({ length: 16 }, (_, r) =>
+            litPixel(g, px + 6, 192 + r)
+        ).every(lit => !lit);
+    let fired = 0;
+    while (!tunnel() && fired < 8) {
+        shoot(g);
+        fired++;
+    }
+    assert.equal(fired, shots, `shots to dig through at x ${px + 6}`);
+}
+
 // The extra ship comes once, at 1,500.
 {
     const g = newGame();

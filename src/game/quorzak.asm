@@ -1712,7 +1712,9 @@ AEXPLGFX: DB $00,$00,$92,$54,$00,$28,$00,$C6,$00,$28,$00,$54,$92,$00,$00,$00
 SHIELD: DB $0F,$1F,$3F,$7F,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$7F,$3F,$1F,$0F
         DB $FF,$FF,$FF,$FF,$FF,$FF,$F8,$F0,$E0,$C0,$C0,$C0,$C0,$E0,$F0,$F8,$FF,$FF,$FF,$FF,$FF,$FF
 PSHOT:  DB $F0
-BLASTGFX: DB $AA,$5C,$FB,$3C,$76,$89
+; Burst. Its third column, the shot's, clears just the shot's 4 rows, so as in the
+; original a shield takes 3 shots to dig through where thin and 4 where thick.
+BLASTGFX: DB $AA,$5C,$0F,$3C,$76,$89
 MASK12: DB $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
 ; Alien shots: three types of four frames, 3 columns each.
 BOMBGFX: DB $80,$76,$08, $40,$BA,$04, $20,$DC,$02, $10,$6E,$80   ; twist: hook runs down
