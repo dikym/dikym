@@ -3,14 +3,17 @@
 Quorzak is an original fixed shooter written in Intel 8080 assembly for the cabinet
 the arcade section emulates. Its rules follow the 1978 genre classic as closely as
 possible; every piece of expression is new: program code, sprite bitmaps, the in-ROM
-digits, sound, on-screen text and the name. No Midway or Taito code, data, samples or
-artwork is in this repository.
+digits, sound, on-screen text and the name. The rules include the original's gameplay
+tables, kept as numbers: alien reload rates, the firing-column order and the UFO score
+cycle. No Midway or Taito code, samples or artwork is in the source tree; the sounds are
+synthesized, with pitch and timing modeled on the original's.
 
 | Kept from the genre (ideas and hardware)                     | Original to Quorzak (expression)                             |
 | ------------------------------------------------------------ | ------------------------------------------------------------ |
 | 8080 CPU, memory map, ports, shift register, interrupts      | Program code, written from scratch in `src/game/quorzak.asm` |
 | Rules: 11×5 rack, ripple march, shields, UFO, scoring, lives | Sprites (Spire, Twin, Dome, ship, UFO, shields, bursts)      |
-| Coloured-cellophane bands                                    | In-ROM digits, synthesized sounds, title and HUD text        |
+| Gameplay tables: reload rates, firing columns, UFO scores    | In-ROM digits, synthesized sounds, title and HUD text        |
+| Coloured-cellophane bands                                    |                                                              |
 
 ## Build and checks
 
