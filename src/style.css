@@ -151,7 +151,7 @@
     html {
         scroll-behavior: smooth;
         /* No rubber-band bounce past the page edges (also stops pull-to-refresh). */
-        overscroll-behavior: none;
+        overscroll-behavior-y: none;
     }
     body {
         background: var(--page);
