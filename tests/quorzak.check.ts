@@ -487,6 +487,34 @@ const shoot = (g: Game) => {
     assert.equal(g.memory[S.UFOON], 0, "UFO done");
 }
 
+// Bolt and beads pick columns in the original's order, each keeping its own place
+// in one table: bolt cycles entries 0-15, beads 6-20.
+{
+    const table = [
+        0, 6, 0, 0, 0, 3, 10, 0, 5, 2, 0, 0, 10, 8, 1, 7, 1, 10, 3, 6, 9,
+    ];
+    const columns = (slot: number, count: number) => {
+        const g = newGame();
+        run(g, 60);
+        const seen: number[] = [];
+        for (let i = 0; i < count; i++) {
+            g.memory.fill(0, S.ASHOTS, S.ASHOTS + 12);
+            g.memory.fill(1, 0x2010, 0x2010 + 55);
+            g.memory[S.FIREWAIT] = 0;
+            g.memory[S.BOMBIDX] = slot - 1;
+            tick(g, IDLE, { bombs: false });
+            const x = g.memory[S.ASHOTS + slot * 4 + 1];
+            assert.ok(g.memory[S.ASHOTS + slot * 4], `slot ${slot} fired`);
+            seen.push(Math.round((x - 7 - g.memory[0x2005]) / 16));
+        }
+        return seen;
+    };
+    const bolt = table.slice(0, 16);
+    const beads = table.slice(6);
+    assert.deepEqual(columns(1, 17), [...bolt, bolt[0]], "bolt order");
+    assert.deepEqual(columns(2, 16), [...beads, beads[0]], "beads order");
+}
+
 // Alien shots take turns: each moves 4 px on every third tick.
 {
     const g = newGame();

@@ -106,15 +106,17 @@ pixels in columns 2–13.
   needs a new press. A shot ending at the top, on a shield or against an alien shot
   bursts for 16 ticks, and no new shot fires until the burst is erased (erasing it
   dents shields).
-- Alien shots: twist (column above the ship), bolt and beads (columns from a 16-entry
-  table), one of each at most. They take turns, one per tick: on its turn a shot moves
-  4 px (5 px with 8 aliens or fewer), or fires if it is idle. As in the original, the
-  reload rate counts steps, not ticks: a shot fires only when every other shot in flight
-  has made more steps than the rate, and a new shot starts at one step. The rate is 48
-  steps up to 299 points, then 16, 11, 8 and 7 from 300, 1,100, 2,100 and 3,100 points,
-  so below 300 points only one alien shot is in flight. The twist skips its first firing
-  turn after each shot and at a wave's start. Aliens hold fire for 48 ticks after a ship
-  respawns. A shot ending on a shield or the ground bursts and dents it.
+- Alien shots: twist (column above the ship), bolt and beads (columns from a 21-entry
+  table in the original's order; bolt cycles entries 0-15 and beads 6-20, each keeping
+  its own place, which also moves on when the column is empty), one of each at most.
+  They take turns, one per tick: on its turn a shot moves 4 px (5 px with 8 aliens or
+  fewer), or fires if it is idle. As in the original, the reload rate counts steps, not
+  ticks: a shot fires only when every other shot in flight has made more steps than the
+  rate, and a new shot starts at one step. The rate is 48 steps up to 299 points, then
+  16, 11, 8 and 7 from 300, 1,100, 2,100 and 3,100 points, so below 300 points only one
+  alien shot is in flight. The twist skips its first firing turn after each shot and at
+  a wave's start. Aliens hold fire for 48 ticks after a ship respawns. A shot ending on
+  a shield or the ground bursts and dents it.
 - UFO: every 1,536 ticks with at least 8 aliens, from the left on an even shot count.
   Like the original's saucer, it shares a task with the beads shot: it waits for a beads
   shot to end, and no beads shot fires while it is due or on screen.

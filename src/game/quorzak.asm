@@ -37,7 +37,7 @@ PDY      EQU $205A      ; this pass's y step
 NOTE     EQU $205B
 FIREWAIT EQU $205C      ; ticks after a respawn before aliens may fire
 TWSKIP   EQU $205D      ; 1: the twist skips its next firing turn
-COLIDX   EQU $205E
+BOLTIDX  EQU $205E      ; bolt's next COLTAB entry (0-15)
 EXTRA    EQU $205F
 UFOON    EQU $2060      ; 0 none, 1 flying, 2 exploding, 3 score shown
 UFOX     EQU $2061
@@ -68,10 +68,11 @@ BOMBIDX  EQU $2087      ; alien shot moved on the last tick
 WIPE     EQU $2088      ; 1-4 wiping VRAM quarters, 5 ground, 6-7 shields and state, 0 playing
 ASTEPS   EQU $2089      ; 3 alien shot step counts
 UFODUE   EQU $208C      ; 1: the UFO waits for the beads shot to end
+BEADSIDX EQU $208D      ; beads' next COLTAB entry (6-20)
 
         PUBLIC PX, PSTATE, SHOTON, SHOTX, SHOTY, SHOTCNT, CURSOR, FIREWAIT
         PUBLIC UFOON, UFOX, UFOTMR, AEXT, ASHOTS, LIVECNT, SBT, DIR, ISR
-        PUBLIC ASTEPS, TWSKIP, UFODUE, BOMBIDX
+        PUBLIC ASTEPS, TWSKIP, UFODUE, BOMBIDX, BOLTIDX, BEADSIDX
 
 ; ---- Vectors
         ORG 0
@@ -113,6 +114,8 @@ RESET:  LXI H,$2000
 NEWGAME:
         MVI A,3
         STA LIVES
+        MVI A,6
+        STA BEADSIDX
         MVI A,1
         STA WAVE
         MVI A,16
@@ -940,13 +943,23 @@ ALIENSHOTS:
         CPI 11
         RNC
         JMP .col
-.table: LDA COLIDX
+.table: PUSH H          ; as in the original, each type keeps its own place
+        LXI H,BOLTIDX   ; bolt: entries 0-15
+        MVI D,16
+        MVI E,0
+        DCR B
+        JZ .pick
+        LXI H,BEADSIDX  ; beads: entries 6-20
+        MVI D,21
+        MVI E,6
+.pick:  MOV C,M
+        MOV A,C
         INR A
-        ANI 15
-        STA COLIDX
-        MOV C,A
+        CMP D
+        JC .keep
+        MOV A,E
+.keep:  MOV M,A
         MVI B,0
-        PUSH H
         LXI H,COLTAB
         DAD B
         MOV A,M
@@ -1651,7 +1664,8 @@ SHIELDX: DB 32, 77, 122, 167
 ROWGFX:  DW DOME, DOME, TWIN, TWIN, SPIRE
 NOTEBITS: DB 1, 2, 4, 8
 ROWPTS:  DB $10, $10, $20, $20, $30
-COLTAB:  DB 5, 9, 2, 7, 0, 10, 3, 8, 6, 1, 4, 9, 2, 10, 7, 0
+; Firing columns (0 = left), in the original's order: bolt reads 0-15, beads 6-20.
+COLTAB:  DB 0, 6, 0, 0, 0, 3, 10, 0, 5, 2, 0, 0, 10, 8, 1, 7, 1, 10, 3, 6, 9
 RELOADS: DB $31, 7, $21, 8, $11, 11, $03, 16, $00, 48   ; steps; score MSB up to $02 gets 48
 ; UFO kind per shot count (0: 50, 1: 100, 2: 150, 3: 300 points).
 UFOSC:   DB 1, 0, 0, 1, 2, 1, 1, 0, 3, 1, 1, 1, 0, 2, 1, 0
