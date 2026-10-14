@@ -216,6 +216,8 @@ const Quorzak: React.FC<QuorzakProps> = ({
     };
     // A tap focuses the section before its click lands, so the click reads the state from pointerdown.
     const focusedAtPressRef = useRef(false);
+    // Safari's click is a MouseEvent with no pointerType, so the press records it.
+    const touchAtPressRef = useRef(false);
     const setPause = useCallback(
         (value: boolean) => {
             pausedRef.current = value;
@@ -826,8 +828,9 @@ const Quorzak: React.FC<QuorzakProps> = ({
                     clearInput();
                     setFocus(false);
                 }}
-                onPointerDown={() => {
+                onPointerDown={e => {
                     focusedAtPressRef.current = focusedRef.current;
+                    touchAtPressRef.current = e.pointerType === "touch";
                 }}
                 // A click anywhere on the cabinet, except buttons and links, focuses the game.
                 // On touch screens, which have no Enter key, a tap in focus also starts it.
@@ -841,7 +844,7 @@ const Quorzak: React.FC<QuorzakProps> = ({
                         focusedAtPressRef.current &&
                         arrived &&
                         (!started || hud.over) &&
-                        (e.nativeEvent as PointerEvent).pointerType === "touch"
+                        touchAtPressRef.current
                     )
                         void start();
                     else focusGame();

@@ -287,7 +287,8 @@ export const createArcadeAudio = () => {
             update();
         },
         start: async () => {
-            await context.resume().catch(() => {});
+            // iOS can leave resume() pending (an interrupted context); the game must not wait on it.
+            void context.resume().catch(() => {});
             for (const channel of channels.keys()) stop(channel);
             last = [0, 0];
             active = true;

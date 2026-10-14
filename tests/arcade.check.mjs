@@ -1552,7 +1552,12 @@ try {
         "tapping sound does not start"
     );
     await tap(".arcade-sound");
-    await tap(".arcade-scoreboard");
+    // Safari: the press is a touch PointerEvent, the click after it a plain MouseEvent.
+    await evaluate(`(() => {
+        const target = document.querySelector('.arcade-scoreboard');
+        target.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'touch' }));
+        target.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    })()`);
     await waitFor(
         "!!document.querySelector('.arcade-status [aria-label=Playing]')"
     );
