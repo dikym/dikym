@@ -6,7 +6,7 @@ import {
     W,
     pixelColor,
 } from "../../game/machine";
-import { ALIEN_SPRITES, UFO } from "../../game/sprites";
+import { ALIEN_SPRITES, pixelPath, UFO } from "../../game/sprites";
 
 // Percentages of the playfield, which shows screen rows 32–239.
 const place = (x: number, y: number) => ({
@@ -73,22 +73,8 @@ const PixelSprite: React.FC<PixelSpriteProps> = ({
         style={{ ...place(x, y), color: pixelColor(x, y) }}
         viewBox="0 0 16 8"
         preserveAspectRatio="none"
-        shapeRendering="crispEdges"
     >
-        {rows.flatMap((row, py) =>
-            [...row].map((pixel, px) =>
-                pixel === "X" ? (
-                    <rect
-                        key={`${px}-${py}`}
-                        x={px}
-                        y={py}
-                        width="1"
-                        height="1"
-                        fill="currentColor"
-                    />
-                ) : null
-            )
-        )}
+        <path d={pixelPath(rows)} fill="currentColor" />
     </svg>
 );
 

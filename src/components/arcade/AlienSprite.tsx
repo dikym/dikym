@@ -1,17 +1,8 @@
 import type { Ref } from "react";
-import { TWIN } from "../../game/sprites";
+import { pixelPath, TWIN } from "../../game/sprites";
 
 // One path per frame: its pixels antialias like the scaled game field, with no seams.
-const FRAMES = TWIN.map(rows =>
-    rows
-        .flatMap((row, y) =>
-            [...row.matchAll(/X+/g)].map(
-                run =>
-                    `M${run.index} ${y}h${run[0].length}v1h-${run[0].length}z`
-            )
-        )
-        .join("")
-);
+const FRAMES = TWIN.map(rows => pixelPath(rows));
 
 const AlienSprite = ({
     className,

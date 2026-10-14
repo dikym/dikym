@@ -27,3 +27,15 @@ export const UFO = sprite(SYMBOLS.UFOGFX, 15);
 export const SCORE_GLYPHS: Record<string, string[]> = Object.fromEntries(
     [..."0123456789 "].map((ch, i) => [ch, sprite(SYMBOLS.FONT + i * 8, 8)])
 );
+
+// One SVG path per sprite, shifted x columns: drawn without crispEdges it antialiases like
+// the scaled game field, as Safari grows each crispEdges pixel outward and closes the gaps.
+export const pixelPath = (rows: string[], x = 0) =>
+    rows
+        .flatMap((row, y) =>
+            [...row.matchAll(/X+/g)].map(
+                run =>
+                    `M${x + run.index} ${y}h${run[0].length}v1h-${run[0].length}z`
+            )
+        )
+        .join("");

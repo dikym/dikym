@@ -8,7 +8,12 @@ import {
 import AttractScreen, { GameOverText } from "./AttractScreen";
 import AlienSprite from "./AlienSprite";
 import { createArcadeAudio } from "../../game/audio";
-import { ALIEN_SPRITES, PLAYER, SCORE_GLYPHS } from "../../game/sprites";
+import {
+    ALIEN_SPRITES,
+    pixelPath,
+    PLAYER,
+    SCORE_GLYPHS,
+} from "../../game/sprites";
 import {
     COLS,
     FIELD_TOP,
@@ -978,7 +983,6 @@ const Quorzak: React.FC<QuorzakProps> = ({
                                                     height="12"
                                                     viewBox="0 0 24 8"
                                                     preserveAspectRatio="none"
-                                                    shapeRendering="crispEdges"
                                                     role="img"
                                                     aria-label={`${ufoPoints.points} points`}
                                                     style={{
@@ -986,41 +990,23 @@ const Quorzak: React.FC<QuorzakProps> = ({
                                                         top: `${((ufoPoints.y - FIELD_TOP) / (FIELD_BOTTOM - FIELD_TOP)) * 100}%`,
                                                     }}
                                                 >
-                                                    {String(ufoPoints.points)
-                                                        .padStart(3, " ")
-                                                        .split("")
-                                                        .flatMap((digit, i) =>
-                                                            SCORE_GLYPHS[
-                                                                digit
-                                                            ].flatMap(
-                                                                (row, y) =>
-                                                                    [
-                                                                        ...row,
-                                                                    ].map(
-                                                                        (
-                                                                            pixel,
-                                                                            x
-                                                                        ) =>
-                                                                            pixel ===
-                                                                            "X" ? (
-                                                                                <rect
-                                                                                    key={`${i}-${x}-${y}`}
-                                                                                    x={
-                                                                                        i *
-                                                                                            8 +
-                                                                                        x
-                                                                                    }
-                                                                                    y={
-                                                                                        y
-                                                                                    }
-                                                                                    width="1"
-                                                                                    height="1"
-                                                                                    fill="currentColor"
-                                                                                />
-                                                                            ) : null
-                                                                    )
+                                                    <path
+                                                        d={[
+                                                            ...String(
+                                                                ufoPoints.points
+                                                            ).padStart(3, " "),
+                                                        ]
+                                                            .map((digit, i) =>
+                                                                pixelPath(
+                                                                    SCORE_GLYPHS[
+                                                                        digit
+                                                                    ],
+                                                                    i * 8
+                                                                )
                                                             )
-                                                        )}
+                                                            .join("")}
+                                                        fill="currentColor"
+                                                    />
                                                 </svg>
                                             )}
                                             {!onClose && !started ? (
@@ -1059,34 +1045,13 @@ const Quorzak: React.FC<QuorzakProps> = ({
                                                             preserveAspectRatio="none"
                                                             aria-hidden="true"
                                                             className="text-(--arcade-player)"
-                                                            shapeRendering="crispEdges"
                                                         >
-                                                            {PLAYER.flatMap(
-                                                                (row, y) =>
-                                                                    [
-                                                                        ...row,
-                                                                    ].map(
-                                                                        (
-                                                                            pixel,
-                                                                            x
-                                                                        ) =>
-                                                                            pixel ===
-                                                                            "X" ? (
-                                                                                <rect
-                                                                                    key={`${x}-${y}`}
-                                                                                    x={
-                                                                                        x
-                                                                                    }
-                                                                                    y={
-                                                                                        y
-                                                                                    }
-                                                                                    width="1"
-                                                                                    height="1"
-                                                                                    fill="currentColor"
-                                                                                />
-                                                                            ) : null
-                                                                    )
-                                                            )}
+                                                            <path
+                                                                d={pixelPath(
+                                                                    PLAYER
+                                                                )}
+                                                                fill="currentColor"
+                                                            />
                                                         </svg>
                                                     )
                                                 )}
