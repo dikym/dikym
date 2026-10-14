@@ -806,7 +806,9 @@
 .arcade-status > [role="status"] {
     left: 274px;
 }
+/* Safari sizes the absolute row too narrow for its SVGs and would shrink them. */
 .arcade-lives svg {
+    flex: none;
     width: 32px;
     height: calc(8px * 2 * 7 / 6);
 }
