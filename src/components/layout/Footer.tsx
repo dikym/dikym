@@ -19,7 +19,7 @@ const Footer: React.FC<FooterProps> = ({ onScrollToSection }) => {
         <footer className="bg-page relative isolate pt-[70px] pb-11">
             {/* Inverse of the page: plain outside the sheet, ruled inside it.
                 Starts 1px up so its top border shares a row with the last outside line. */}
-            <div className="border-line bg-sheet pointer-events-none absolute -top-px right-(--rule-x) bottom-0 left-(--rule-x) -z-10 border-x border-t bg-(image:--ruling-down) bg-origin-border" />
+            <div className="border-line bg-sheet pointer-events-none absolute -top-px right-(--rule-x) bottom-0 left-(--rule-x) -z-10 border-x border-t bg-(image:--ruling-down) bg-size-[100%_5px] bg-origin-border [image-rendering:pixelated]" />
             <div className="wrap">
                 <div className="grid grid-cols-2 gap-[30px] lg:grid-cols-[1.4fr_1fr_1fr_1fr] lg:gap-10">
                     <div className="col-span-2 lg:col-span-1">

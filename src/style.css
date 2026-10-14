@@ -47,16 +47,14 @@
     --line: rgba(22, 20, 14, 0.16);
     --line-2: rgba(22, 20, 14, 0.08);
     --rule-c: rgba(22, 20, 14, 0.05);
-    /* 5px ruling; "up" puts a line on the bottom edge, "down" on the top edge */
-    --ruling-up: repeating-linear-gradient(
-        0deg,
-        var(--rule-c) 0 1px,
-        transparent 1px 5px
-    );
-    --ruling-down: repeating-linear-gradient(
+    /* One 5px tile, repeated with background-size: 100% 5px; "up" puts the line on
+       the bottom edge, "down" on the top edge. A repeating-linear-gradient this fine
+       made Safari repaint the page slowly while the arcade opens and closes. */
+    --ruling-up: linear-gradient(0deg, var(--rule-c) 0 1px, transparent 1px);
+    --ruling-down: linear-gradient(
         180deg,
         var(--rule-c) 0 1px,
-        transparent 1px 5px
+        transparent 1px
     );
     --dot: rgba(22, 20, 14, 0.16);
 
@@ -187,6 +185,9 @@
         z-index: -2;
         pointer-events: none;
         background-image: var(--ruling-up);
+        background-size: 100% 5px;
+        background-position: 0 100%;
+        image-rendering: pixelated;
     }
     h1,
     h2 {
