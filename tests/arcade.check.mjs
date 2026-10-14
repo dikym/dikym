@@ -24,6 +24,17 @@ const STRETCH_AUDIT = `(() => {
 import { writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 
+// The canvas shows the field at a whole-number scale; nearest-neighbour reads it back at 224x208.
+const FIELD = `(() => {
+    const c = document.createElement('canvas');
+    c.width = 224;
+    c.height = 208;
+    const x = c.getContext('2d');
+    x.imageSmoothingEnabled = false;
+    x.drawImage(document.querySelector('canvas'), 0, 0, 224, 208);
+    return x;
+})()`;
+
 const tabs = await fetch("http://127.0.0.1:9222/json").then(r => r.json());
 const socket = new WebSocket(
     tabs.find(tab => tab.type === "page").webSocketDebuggerUrl
@@ -729,9 +740,10 @@ try {
     const readyFrame = await evaluate(
         'document.querySelector("canvas").toDataURL()'
     );
+    const readyField = await evaluate(`${FIELD}.canvas.toDataURL()`);
     assert.equal(
         createHash("sha256")
-            .update(Buffer.from(readyFrame.split(",")[1], "base64"))
+            .update(Buffer.from(readyField.split(",")[1], "base64"))
             .digest("hex"),
         "47d4860b1b329c81dadb3ed4658d6beb4306681540a444f27920d038162dabe1",
         "initial canvas PNG matches the native baseline"
@@ -750,10 +762,10 @@ try {
     );
     const idleDraws = await evaluate(`(() => {
         const ctx = document.querySelector('canvas').getContext('2d');
-        const original = ctx.putImageData;
+        const original = ctx.drawImage;
         let draws = 0;
-        ctx.putImageData = function (...args) { draws++; return original.apply(this, args); };
-        try { tickArcade(500); } finally { ctx.putImageData = original; }
+        ctx.drawImage = function (...args) { draws++; return original.apply(this, args); };
+        try { tickArcade(500); } finally { ctx.drawImage = original; }
         return draws;
     })()`);
     assert.equal(
@@ -892,7 +904,7 @@ try {
     await evaluate("tickArcade(60)");
     await setUpGame("g.elapsed = -1000; window.nativeGame = g;");
     const pixels = await evaluate(`(() => {
-        const g = nativeGame, ctx = document.querySelector('canvas').getContext('2d');
+        const g = nativeGame, ctx = ${FIELD};
         const data = ctx.getImageData(0, 0, 224, 208).data;
         let lit = 0, mismatches = 0;
         for (let x = 0; x < 224; x++) for (let y = 32; y < 240; y++) {
@@ -1217,11 +1229,11 @@ try {
     );
     const gameOverDraws = await evaluate(`(() => {
         const ctx = document.querySelector('canvas').getContext('2d');
-        const original = ctx.putImageData;
+        const original = ctx.drawImage;
         const frame = document.querySelector('canvas').toDataURL();
         let draws = 0;
-        ctx.putImageData = function (...args) { draws++; return original.apply(this, args); };
-        try { tickArcade(500); } finally { ctx.putImageData = original; }
+        ctx.drawImage = function (...args) { draws++; return original.apply(this, args); };
+        try { tickArcade(500); } finally { ctx.drawImage = original; }
         return {draws, unchanged: document.querySelector('canvas').toDataURL() === frame};
     })()`);
     assert.deepEqual(
@@ -1285,8 +1297,7 @@ try {
     assert.equal(closing.alien, true, "alien returns during collapse");
     assert.ok(
         await evaluate(`(() => {
-        const canvas = document.querySelector('canvas');
-        const ctx = canvas.getContext('2d');
+        const ctx = ${FIELD};
         const inv = nativeGame.invaders.find(inv => inv.row === 1 && inv.alive);
         const departed = ctx.getImageData(inv.x, inv.y - 40, 17, 16).data;
         const neighbour = ctx.getImageData(inv.x + 16, inv.y - 32, 16, 8).data;
@@ -1372,7 +1383,7 @@ try {
         await evaluate("tickArcade(1)");
         assert.ok(
             await evaluate(`(() => {
-            const ctx = document.querySelector('canvas').getContext('2d');
+            const ctx = ${FIELD};
             const pixels = ctx.getImageData(24, 40, 17, 16).data;
             const neighbour = ctx.getImageData(40, 48, 16, 8).data;
             return pixels.every((value, i) => i % 4 !== 3 || value === 0)

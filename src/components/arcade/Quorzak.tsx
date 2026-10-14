@@ -567,9 +567,26 @@ const Quorzak: React.FC<QuorzakProps> = ({
 
     // Game loop.
     useEffect(() => {
-        const ctx = canvasRef.current?.getContext("2d");
-        if (!ctx) return;
-        ctx.imageSmoothingEnabled = false;
+        const canvas = canvasRef.current;
+        const view = canvas?.getContext("2d");
+        if (!canvas || !view) return;
+        // Sharp bilinear: the field is drawn at 1x, scaled up by a whole number with hard
+        // edges, and smoothed down to the display size, so every pixel shows the same width.
+        const source = document.createElement("canvas");
+        source.width = W;
+        source.height = FIELD_BOTTOM - FIELD_TOP;
+        const ctx = source.getContext("2d")!;
+        let scale = 1;
+        // shortcut: a devicePixelRatio change at the same CSS size (window dragged to another
+        // screen) keeps the old factor until the next resize; watch matchMedia if that shows.
+        const resize = new ResizeObserver(([entry]) => {
+            // Rows are 7/6 taller than columns, so the row size sets the factor.
+            const device =
+                (entry.contentRect.width / W) * devicePixelRatio * PIXEL_ASPECT;
+            scale = Math.min(6, Math.max(1, Math.ceil(device)));
+            drawn = false;
+        });
+        resize.observe(canvas);
         // The original screen reserves 32 pixels for a HUD, now rendered in HTML.
         ctx.setTransform(1, 0, 0, 1, 0, -FIELD_TOP);
         const image = ctx.createImageData(W, FIELD_BOTTOM - FIELD_TOP);
@@ -694,6 +711,13 @@ const Quorzak: React.FC<QuorzakProps> = ({
                 // A rack moves one alien at a time; its previous row can be 8px higher.
                 ctx.clearRect(returning.x, returning.y - 8, 17, 16);
             }
+            if (canvas.width !== W * scale) {
+                canvas.width = W * scale;
+                canvas.height = source.height * scale;
+            }
+            view.imageSmoothingEnabled = false;
+            view.clearRect(0, 0, canvas.width, canvas.height);
+            view.drawImage(source, 0, 0, canvas.width, canvas.height);
             setUfoPoints(previous =>
                 points
                     ? previous?.x === points.x &&
@@ -721,7 +745,10 @@ const Quorzak: React.FC<QuorzakProps> = ({
             );
         };
         frame = requestAnimationFrame(loop);
-        return () => cancelAnimationFrame(frame);
+        return () => {
+            cancelAnimationFrame(frame);
+            resize.disconnect();
+        };
     }, []);
 
     // Keep the best score.
@@ -927,7 +954,7 @@ const Quorzak: React.FC<QuorzakProps> = ({
                                                 // Tab reaches the game in every state; Enter starts it from here.
                                                 tabIndex={closing ? -1 : 0}
                                                 aria-label="Game field. Enter to start or pause, left and right arrows to move, Space to fire."
-                                                className="block w-full [image-rendering:pixelated]"
+                                                className="block w-full"
                                             />
                                             {ufoPoints && (
                                                 <svg
