@@ -460,6 +460,13 @@
 .arcade-slot {
     --arcade-control-gap: 12px;
     --arcade-screen-padding: clamp(12px, 3vw, 32px);
+    /* Until the game exists to measure (fitArcadeToViewport), size the footer alien as the
+       field will fit below the navbar: the panel is 4/3 of the field plus this chrome.
+       shortcut: the chrome mirrors the panel layout, arcade.check catches drift. */
+    --arcade-chrome: calc(133px + 2 * var(--arcade-control-gap));
+    --arcade-height-width: calc(
+        (100dvh + 1px - var(--nav-bottom, 0px) - var(--arcade-chrome)) * 3 / 4
+    );
     position: relative;
     container-type: inline-size;
     margin-inline: var(--rule-x);
@@ -918,6 +925,10 @@
     html:has(.arcade-section) {
         user-select: none;
         -webkit-touch-callout: none;
+    }
+    .arcade-slot {
+        /* The touch controls and their hint add 53.67px. */
+        --arcade-chrome: calc(186.67px + 2 * var(--arcade-control-gap));
     }
     .arcade-touch-controls {
         display: grid;

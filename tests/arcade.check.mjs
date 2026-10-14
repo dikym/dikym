@@ -1931,6 +1931,38 @@ try {
         "mobile menu list is centered in the viewport independently of the navbar"
     );
     await click('[aria-label="Close menu"]');
+    // On a short viewport the game shrinks to fit; the footer alien must already match it.
+    for (const [width, height, touch] of [
+        [1280, 560, false],
+        [390, 600, true],
+    ]) {
+        await send("Emulation.setDeviceMetricsOverride", {
+            width,
+            height,
+            deviceScaleFactor: 1,
+            mobile: touch,
+        });
+        await send("Emulation.setTouchEmulationEnabled", { enabled: touch });
+        await send("Page.navigate", {
+            url: process.argv[2] || "http://127.0.0.1:5173",
+        });
+        await waitFor('!!document.querySelector(".arcade-trigger svg")');
+        const footerAlien = await evaluate(
+            'document.querySelector(".arcade-trigger svg").getBoundingClientRect().width'
+        );
+        await click(".arcade-trigger");
+        await waitFor(
+            '!!document.querySelector(".arcade-section.is-expanded")'
+        );
+        const gameAlien = await evaluate(
+            'document.querySelector("canvas").getBoundingClientRect().width * 11 / 224'
+        );
+        assert.ok(
+            Math.abs(footerAlien - gameAlien) < 0.1,
+            `${width}x${height}: footer alien ${footerAlien} matches the game's ${gameAlien}`
+        );
+    }
+    await send("Emulation.setTouchEmulationEnabled", { enabled: false });
     assert.deepEqual(errors, [], "browser must have no uncaught errors");
     console.log(
         "arcade: alien trigger, inline expansion, arrival, reduced motion, idle, Start, scoped keyboard input, fire, restart, close, touch, responsive layout, focus, and console passed"

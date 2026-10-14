@@ -1,6 +1,18 @@
 import type { Ref } from "react";
 import { TWIN } from "../../game/sprites";
 
+// One path per frame: its pixels antialias like the scaled game field, with no seams.
+const FRAMES = TWIN.map(rows =>
+    rows
+        .flatMap((row, y) =>
+            [...row.matchAll(/X+/g)].map(
+                run =>
+                    `M${run.index} ${y}h${run[0].length}v1h-${run[0].length}z`
+            )
+        )
+        .join("")
+);
+
 const AlienSprite = ({
     className,
     ref,
@@ -14,25 +26,10 @@ const AlienSprite = ({
         viewBox="0 0 11 8"
         preserveAspectRatio="none"
         fill="currentColor"
-        shapeRendering="crispEdges"
         aria-hidden="true"
     >
-        {TWIN.map((rows, frame) => (
-            <g key={frame} className="crab-frame">
-                {rows.flatMap((row, y) =>
-                    [...row].map((pixel, x) =>
-                        pixel === "X" ? (
-                            <rect
-                                key={`${x}-${y}`}
-                                x={x}
-                                y={y}
-                                width="1"
-                                height="1"
-                            />
-                        ) : null
-                    )
-                )}
-            </g>
+        {FRAMES.map((d, frame) => (
+            <path key={frame} className="crab-frame" d={d} />
         ))}
     </svg>
 );

@@ -49,6 +49,21 @@ const ArcadeSection = () => {
         },
         []
     );
+    // The footer alien sizes itself like the game, which fits below the navbar.
+    useLayoutEffect(() => {
+        const nav = document.querySelector("header > nav");
+        const slot = triggerRef.current!.parentElement!;
+        if (!nav) return;
+        const update = () =>
+            slot.style.setProperty(
+                "--nav-bottom",
+                `${nav.getBoundingClientRect().bottom}px`
+            );
+        update();
+        const observer = new ResizeObserver(update);
+        observer.observe(nav);
+        return () => observer.disconnect();
+    }, []);
     useLayoutEffect(() => {
         if (!pending) return;
         const cancel = (event: KeyboardEvent) => {
