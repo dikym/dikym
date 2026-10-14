@@ -1043,7 +1043,7 @@ const Quorzak: React.FC<QuorzakProps> = ({
                                                           : "Ready"
                                                 }
                                             >
-                                                Free play
+                                                1 Player
                                             </span>
                                         </div>
                                     </div>

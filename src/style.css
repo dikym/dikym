@@ -764,7 +764,7 @@
     background: transparent;
     color: var(--ink-2);
 }
-/* Screen rows 240–255: lives digit from x=9, spare ships from x=24, FREE PLAY from x=137. */
+/* Screen rows 240–255: lives digit from x=9, spare ships from x=24, 1 PLAYER from x=137. */
 .arcade-status {
     position: relative;
     width: 448px;

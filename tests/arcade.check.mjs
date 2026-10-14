@@ -1048,7 +1048,7 @@ try {
         near(
             hud.credit[0],
             hud.left + 137 * hud.column,
-            "FREE PLAY ink at x=137"
+            "1 PLAYER ink at x=137"
         );
         const board = await evaluate(`(() => {
             const field = document.querySelector('canvas').getBoundingClientRect();
