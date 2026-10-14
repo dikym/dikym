@@ -92,7 +92,7 @@ try {
         };
         try {
             // Each sound bit starts its own voice once per rising edge; only the UFO loops.
-            for (const [name, port, bit, voices] of [['ufo',3,1,2],['shot',3,2,1],['death',3,4,1],['hit',3,8,2],['bonus',3,16,1],['march1',5,1,1],['march2',5,2,1],['march3',5,4,1],['march4',5,8,1],['ufo-hit',5,16,2]]) {
+            for (const [name, port, bit, voices] of [['ufo',3,1,2],['shot',3,2,2],['death',3,4,1],['hit',3,8,1],['bonus',3,16,1],['march1',5,1,1],['march2',5,2,1],['march3',5,4,1],['march4',5,8,1],['ufo-hit',5,16,2]]) {
                 const { ctx, sources } = makeContext();
                 const audio = createArcadeAudio(); await audio.start(); audio.sync([32,0], true);
                 audio.play({ port, value: port === 3 ? 32 | bit : bit });
@@ -115,9 +115,9 @@ try {
                 else if (mode === 'fleet-replacement') { audio.play({ port: 5, value: 15 }); check(sources.length === 4 && sources.slice(0,3).every(s => s.stops.length === 2), 'fleet channel replaces prior note'); }
                 else audio.play({ port: 3, value: mode === 'gate' ? 2 : 34 });
                 if (mode === 'inactive') { silent = true; check(sources.length === 0, 'inactive cannot create sources'); }
-                if (mode === 'retrigger') { audio.play({ port: 3, value: 32 }); audio.play({ port: 3, value: 34 }); check(sources.length === 2 && sources[0].stops.length === 2, 'rising edge restarts channel'); }
+                if (mode === 'retrigger') { audio.play({ port: 3, value: 32 }); audio.play({ port: 3, value: 34 }); check(sources.length === 4 && sources.slice(0,2).every(s => s.stops.length === 2), 'rising edge restarts channel'); }
                 if (mode === 'pause') { audio.sync([34,0], false); silent = true; check(sources.every(s => s.stops.length === 2), 'pause stops every channel'); }
-                if (mode === 'restart') { await audio.start(); check(sources.every(s => s.stops.length === 2), 'restart stops old channels'); audio.play({ port: 3, value: 34 }); check(sources.length === 2, 'restart resets edge history'); }
+                if (mode === 'restart') { await audio.start(); check(sources.every(s => s.stops.length === 2), 'restart stops old channels'); audio.play({ port: 3, value: 34 }); check(sources.length === 4, 'restart resets edge history'); }
                 if (mode === 'ufo-falling') { audio.play({ port: 3, value: 33 }); audio.play({ port: 3, value: 32 }); check(sources.slice(1).every(s => s.stops.length === 1), 'UFO falling edge stops loop'); }
                 const level = await peak(ctx);
                 check(silent ? level === 0 : level > 0, mode + ': ' + (silent ? 'silent' : 'audible') + ', peak ' + level);

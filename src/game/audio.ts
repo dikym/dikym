@@ -2,8 +2,35 @@ import type { SoundEvent } from "./machine";
 
 type Voice = (time: number, out: GainNode) => AudioScheduledSourceNode[];
 
-// Pitches of the four march notes (Hz).
-const MARCH = [98, 87, 78, 73];
+// Starting pitches of the four march notes (Hz); each droops 12%.
+const MARCH = [76, 66, 60, 54];
+
+// The UFO's pitch over one 162 ms cycle, as Fourier terms for a PeriodicWave:
+// its period (not its pitch) sweeps linearly from 1/740 s to 1/3470 s and back.
+const UFO_CYCLE = 0.162;
+const UFO_POINTS = Array.from({ length: 256 }, (_, i) => {
+    const sweep = i < 128 ? i / 128 : 2 - i / 128;
+    return 1 / (1 / 740 - (1 / 740 - 1 / 3470) * sweep);
+});
+const UFO_PITCH = UFO_POINTS.reduce((sum, f) => sum + f, 0) / 256;
+const UFO_TERMS = [0, 1].map(phase =>
+    Float32Array.from({ length: 33 }, (_, k) =>
+        k === 0
+            ? 0
+            : (UFO_POINTS.reduce(
+                  (sum, f, i) =>
+                      sum +
+                      (f - UFO_PITCH) *
+                          Math.cos(
+                              (2 * Math.PI * k * i) / 256 -
+                                  (phase * Math.PI) / 2
+                          ),
+                  0
+              ) *
+                  2) /
+              256
+    )
+);
 
 export const createArcadeAudio = () => {
     // iOS plays Web Audio as "ambient", which the silent switch mutes; "playback" ignores the switch.
@@ -60,42 +87,83 @@ export const createArcadeAudio = () => {
         source.connect(filter);
         return { source, filter };
     };
-    const decay = (
-        out: GainNode,
-        time: number,
-        level: number,
-        length: number
-    ) => {
-        out.gain.setValueAtTime(level, time);
-        out.gain.exponentialRampToValueAtTime(0.001, time + length);
-    };
     const VOICES = {
         ufo: (_time, out) => {
-            out.gain.value = 0.25;
-            const tone = oscillator("square", 220, out);
-            const depth = context.createGain();
-            depth.gain.value = 60;
-            depth.connect(tone.frequency);
-            return [tone, oscillator("sine", 8, depth)];
+            out.gain.value = 0.5;
+            // A first-order 920 Hz lowpass quietens the high end, as in the original.
+            const fade = Math.exp((-2 * Math.PI * 920) / context.sampleRate);
+            const filter = context.createIIRFilter([1 - fade], [1, -fade]);
+            filter.connect(out);
+            const tone = oscillator("triangle", UFO_PITCH, filter);
+            const sweep = context.createOscillator();
+            sweep.setPeriodicWave(
+                context.createPeriodicWave(UFO_TERMS[0], UFO_TERMS[1], {
+                    disableNormalization: true,
+                })
+            );
+            sweep.frequency.value = 1 / UFO_CYCLE;
+            sweep.connect(tone.frequency);
+            return [tone, sweep];
         },
         shot: (time, out) => {
-            const { source, filter } = filteredNoise("bandpass", 3000, out);
-            filter.frequency.exponentialRampToValueAtTime(600, time + 0.18);
-            decay(out, time, 0.6, 0.18);
-            return [source];
+            // A steady tone whose pitch jitters randomly, as in the original:
+            // filtered noise instead wobbles in level and sounds rough.
+            const tone = oscillator("sine", 2620, out);
+            const jitter = context.createGain();
+            jitter.gain.value = 1600;
+            jitter.connect(tone.frequency);
+            // Pitch and level follow the original: hold, then droop and fade.
+            tone.frequency.setValueAtTime(2620, time + 0.16);
+            tone.frequency.exponentialRampToValueAtTime(2400, time + 0.28);
+            out.gain.setValueAtTime(0.35, time);
+            out.gain.setValueAtTime(0.35, time + 0.15);
+            out.gain.linearRampToValueAtTime(0.07, time + 0.3);
+            out.gain.linearRampToValueAtTime(0, time + 0.32);
+            return [tone, filteredNoise("lowpass", 5000, jitter).source];
         },
         death: (time, out) => {
-            const { source, filter } = filteredNoise("lowpass", 900, out);
-            filter.frequency.exponentialRampToValueAtTime(120, time + 1);
-            decay(out, time, 0.9, 1);
+            // Noise from 100 to 800 Hz with a steep top, held, then faded.
+            const low = context.createBiquadFilter();
+            low.type = "highpass";
+            low.frequency.value = 100;
+            low.connect(out);
+            const top = context.createBiquadFilter();
+            top.type = "lowpass";
+            top.frequency.value = 750;
+            top.connect(low);
+            const { source } = filteredNoise("lowpass", 750, top);
+            out.gain.setValueAtTime(1, time);
+            out.gain.setValueAtTime(1, time + 0.32);
+            out.gain.linearRampToValueAtTime(0, time + 0.54);
             return [source];
         },
         hit: (time, out) => {
-            decay(out, time, 0.5, 0.12);
-            return [
-                filteredNoise("highpass", 400, out).source,
-                oscillator("square", 160, out),
-            ];
+            // Falling sweeps that repeat ever quieter, like an echo; the first
+            // starts mid-sweep. Times (s), pitches (Hz) and levels follow the original.
+            const tone = oscillator("triangle", 1000, out);
+            for (const [at, from, end, to] of [
+                [0, 1000, 0.08, 240],
+                [0.088, 1885, 0.268, 190],
+                [0.272, 1840, 0.36, 1010],
+            ]) {
+                tone.frequency.setValueAtTime(from, time + at);
+                tone.frequency.linearRampToValueAtTime(to, time + end);
+            }
+            out.gain.setValueAtTime(0, time);
+            for (const [at, level] of [
+                [0.004, 0.7],
+                [0.024, 0.7],
+                [0.08, 0.27],
+                [0.088, 0.32],
+                [0.16, 0.29],
+                [0.24, 0.15],
+                [0.268, 0.09],
+                [0.272, 0.055],
+                [0.35, 0.006],
+                [0.367, 0],
+            ])
+                out.gain.linearRampToValueAtTime(level, time + at);
+            return [tone];
         },
         bonus: (time, out) => {
             out.gain.value = 0.2;
@@ -118,9 +186,9 @@ export const createArcadeAudio = () => {
         },
     } satisfies Record<string, Voice>;
     const LENGTHS = {
-        shot: 0.18,
-        death: 1,
-        hit: 0.12,
+        shot: 0.32,
+        death: 0.54,
+        hit: 0.367,
         bonus: 0.96,
         "ufo-hit": 0.6,
     };
@@ -177,15 +245,32 @@ export const createArcadeAudio = () => {
                             play(
                                 "fleet",
                                 (time, out) => {
-                                    // Square harmonics keep these low notes audible on small speakers.
+                                    // Sawtooth harmonics keep these low notes audible on small speakers.
                                     const filter = context.createBiquadFilter();
                                     filter.type = "lowpass";
-                                    filter.frequency.value = 900;
+                                    filter.frequency.value = 450;
                                     filter.connect(out);
-                                    decay(out, time, 0.8, 0.1);
-                                    return [
-                                        oscillator("square", MARCH[i], filter),
-                                    ];
+                                    // A full-level thump that stops sharply, like the original.
+                                    out.gain.setValueAtTime(0.8, time);
+                                    out.gain.setValueAtTime(0.8, time + 0.075);
+                                    out.gain.linearRampToValueAtTime(
+                                        0,
+                                        time + 0.095
+                                    );
+                                    const tone = oscillator(
+                                        "sawtooth",
+                                        MARCH[i],
+                                        filter
+                                    );
+                                    tone.frequency.setValueAtTime(
+                                        MARCH[i],
+                                        time
+                                    );
+                                    tone.frequency.exponentialRampToValueAtTime(
+                                        MARCH[i] * 0.88,
+                                        time + 0.095
+                                    );
+                                    return [tone];
                                 },
                                 0.1
                             );
