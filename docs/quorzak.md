@@ -115,8 +115,9 @@ pixels in columns 2–13.
   rate, and a new shot starts at one step. The rate is 48 steps up to 299 points, then
   16, 11, 8 and 7 from 300, 1,100, 2,100 and 3,100 points, so below 300 points only one
   alien shot is in flight. The twist skips its first firing turn after each shot and at
-  a wave's start. Aliens hold fire for 48 ticks after a ship respawns. A shot ending on
-  a shield or the ground bursts and dents it.
+  a wave's start. Aliens hold fire for 48 ticks after a ship respawns. As with the
+  original plunger shot, a bolt that ends with one alien left is the wave's last bolt.
+  A shot ending on a shield or the ground bursts and dents it.
 - UFO: every 1,536 ticks with at least 8 aliens, from the left on an even shot count.
   Like the original's saucer, it shares a task with the beads shot: it waits for a beads
   shot to end, and no beads shot fires while it is due or on screen.

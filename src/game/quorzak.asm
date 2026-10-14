@@ -69,10 +69,11 @@ WIPE     EQU $2088      ; 1-4 wiping VRAM quarters, 5 ground, 6-7 shields and st
 ASTEPS   EQU $2089      ; 3 alien shot step counts
 UFODUE   EQU $208C      ; 1: the UFO waits for the beads shot to end
 BEADSIDX EQU $208D      ; beads' next COLTAB entry (6-20)
+SKIPBOLT EQU $208E      ; 1: no more bolts this wave (one alien was left)
 
         PUBLIC PX, PSTATE, SHOTON, SHOTX, SHOTY, SHOTCNT, CURSOR, FIREWAIT
         PUBLIC UFOON, UFOX, UFOTMR, AEXT, ASHOTS, LIVECNT, SBT, DIR, ISR
-        PUBLIC ASTEPS, TWSKIP, UFODUE, BOMBIDX, BOLTIDX, BEADSIDX
+        PUBLIC ASTEPS, TWSKIP, UFODUE, BOMBIDX, BOLTIDX, BEADSIDX, SKIPBOLT
 
 ; ---- Vectors
         ORG 0
@@ -165,6 +166,7 @@ WAVESETUP:
         STA ASHOTS+4
         STA ASHOTS+8
         STA UFODUE
+        STA SKIPBOLT
         MVI A,55
         STA LIVECNT
         MVI A,1
@@ -871,7 +873,22 @@ ALIENSHOTS:
         MOV A,M
         ORA A
         JNZ BOMBSTEP
-        LDA PSTATE
+        MOV A,B         ; like the original plunger shot, a bolt that ends with
+        CPI 1           ; one alien left is the last bolt of the wave
+        JNZ .fire0
+        LXI H,ASTEPS+1  ; steps left over: a bolt has ended since its last turn
+        MOV A,M
+        ORA A
+        JZ .noend
+        MVI M,0
+        LDA LIVECNT
+        CPI 1
+        JNZ .noend
+        STA SKIPBOLT
+.noend: LDA SKIPBOLT
+        ORA A
+        RNZ
+.fire0: LDA PSTATE
         LXI H,FIREWAIT
         ORA M
         RNZ

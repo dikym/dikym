@@ -515,6 +515,29 @@ const shoot = (g: Game) => {
     assert.deepEqual(columns(2, 16), [...beads, beads[0]], "beads order");
 }
 
+// Like the original plunger shot, a bolt that ends with one alien left is the
+// wave's last bolt.
+for (const alive of [1, 2]) {
+    const g = newGame();
+    run(g, 60);
+    g.memory.fill(0, 0x2010, 0x2010 + 55);
+    g.memory.fill(1, 0x2010, 0x2010 + alive);
+    g.memory[S.LIVECNT] = alive;
+    g.memory[S.FIREWAIT] = 0;
+    g.memory[S.ASTEPS + 1] = 5;
+    g.memory[S.BOMBIDX] = 0;
+    tick(g, IDLE, { bombs: false });
+    assert.equal(g.memory[S.SKIPBOLT], alive === 1 ? 1 : 0);
+    if (alive === 2) {
+        assert.equal(g.memory[S.ASHOTS + 4], 1, "bolt fires with two aliens");
+        continue;
+    }
+    for (let i = 0; i < 60; i++) {
+        tick(g, IDLE, { bombs: false });
+        assert.equal(g.memory[S.ASHOTS + 4], 0, "no bolt with one alien left");
+    }
+}
+
 // Alien shots take turns: each moves 4 px on every third tick.
 {
     const g = newGame();
