@@ -1060,10 +1060,7 @@ BURSTAT:
 BOMBBLIT:
         PUSH H
         MOV A,L
-        RRC
-        RRC
-        ANI 3
-        ADD A
+        ANI $0C         ; type * 4 (records are 4 bytes from ASHOTS = $2070)
         MOV C,A
         INX H
         MOV D,M
@@ -1071,7 +1068,7 @@ BOMBBLIT:
         MOV E,M
         INX H
         MOV A,M
-        ANI 1
+        ANI 3           ; frame
         ADD C
         MOV C,A
         ADD A
@@ -1611,9 +1608,10 @@ SHIELD: DB $0F,$1F,$3F,$7F,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$7F,$
 PSHOT:  DB $F0
 BLASTGFX: DB $AA,$5C,$FB,$3C,$76,$89
 MASK12: DB $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
-BOMBGFX: DB $44,$AA,$10, $10,$AA,$44   ; twist
-        DB $20,$FE,$20, $10,$FE,$10    ; bolt
-        DB $48,$B6,$48, $92,$6C,$92    ; beads
+; Alien shots: three types of four frames, 3 columns each.
+BOMBGFX: DB $80,$76,$08, $40,$BA,$04, $20,$DC,$02, $10,$6E,$80   ; twist: hook runs down
+        DB $02,$BC,$02, $02,$DC,$02, $02,$EC,$02, $02,$F4,$02    ; bolt: gap runs down
+        DB $88,$76,$88, $44,$BA,$44, $22,$DC,$22, $10,$EE,$10    ; beads: beads run down
 ; Digits 0-9 then space, 8 columns each.
 FONT:   DB $00,$7C,$82,$92,$82,$7C,$00,$00
         DB $00,$42,$42,$FE,$02,$02,$00,$00

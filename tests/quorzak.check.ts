@@ -432,6 +432,25 @@ const shoot = (g: Game) => {
     assert.ok(burst > 0, "they burst where they met");
 }
 
+// Each alien shot type animates through four frames as it falls, like the original's.
+for (const slot of [0, 1, 2]) {
+    const g = newGame();
+    run(g, 60);
+    const shot = S.ASHOTS + slot * 4;
+    g.memory.set([1, 210, 64, 0], shot);
+    const seen = new Set<string>();
+    for (let turn = 0; turn < 4; turn++) {
+        run(g, 3);
+        const [x, y] = [g.memory[shot + 1], g.memory[shot + 2]];
+        let pattern = "";
+        for (let row = 0; row < 7; row++)
+            for (let col = 0; col < 3; col++)
+                pattern += litPixel(g, x + col, y + row) ? "X" : ".";
+        seen.add(pattern);
+    }
+    assert.equal(seen.size, 4, `alien shot type ${slot} frames`);
+}
+
 // An alien shot that reaches the ground bursts and leaves a dent in it.
 {
     const g = newGame();
