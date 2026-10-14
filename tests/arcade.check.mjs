@@ -517,11 +517,12 @@ try {
     const alienWidth = await evaluate(
         'document.querySelector(".arcade-trigger svg").getBoundingClientRect().width'
     );
+    const legGap = await evaluate(
+        '(() => { const svg = document.querySelector(".arcade-trigger svg").getBoundingClientRect(); return document.querySelector("footer").getBoundingClientRect().top - (svg.bottom - svg.height / 8); })()'
+    );
     assert.ok(
-        (await evaluate(
-            'Math.abs(document.querySelector("footer").getBoundingClientRect().top - document.querySelector(".arcade-trigger svg").getBoundingClientRect().bottom - 2)'
-        )) < 1,
-        "alien sits directly above the footer"
+        Math.abs(legGap - 1) < 0.5,
+        `alien legs stand on the footer rule, which sits 1px above the footer box: ${legGap}`
     );
     assert.equal(
         await evaluate(
@@ -1655,7 +1656,9 @@ try {
             const middle = sprite.getBoundingClientRect().top;
             animation.currentTime = 360;
             const to = sprite.getBoundingClientRect().top;
-            const gap = document.querySelector('footer').getBoundingClientRect().top - sprite.getBoundingClientRect().bottom;
+            const box = sprite.getBoundingClientRect();
+            // The sprite's bottom row is empty; its legs end one row above the box.
+            const gap = document.querySelector('footer').getBoundingClientRect().top - (box.bottom - box.height / 8);
             animation.cancel();
             return {from, middle, to, edge, gap, overflow: getComputedStyle(button).overflowY};
         })()`);
@@ -1685,8 +1688,8 @@ try {
                 "footer clips the emerging alien"
             );
             assert.ok(
-                Math.abs(emergence.gap - 2) < 1,
-                `${result}: ends immediately above the footer`
+                Math.abs(emergence.gap - 1) < 0.5,
+                `${result}: ends standing on the footer rule (${emergence.gap})`
             );
         }
     }

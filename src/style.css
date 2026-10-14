@@ -496,7 +496,6 @@
     align-items: end;
     width: 44px;
     height: 44px;
-    padding-bottom: 2px;
     color: var(--ink-2);
     cursor: pointer;
 }
@@ -504,6 +503,9 @@
     display: block;
     width: calc(var(--arcade-field-width) * 9 / 224);
     height: calc(var(--arcade-field-width) * 8 * 7 / (224 * 6));
+    /* The sprite's bottom row is empty: drop it below the edge so the legs stand on
+       the footer's 1px rule, which sits just above the footer box. */
+    margin-bottom: calc(var(--arcade-field-width) * -7 / (224 * 6) + 1px);
 }
 .crab-frame:last-child {
     opacity: 0;
