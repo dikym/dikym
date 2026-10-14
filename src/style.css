@@ -559,7 +559,8 @@
     justify-content: flex-end;
     height: 100%;
     min-height: 0;
-    overflow: hidden;
+    /* clip, not hidden: as a scroll container Safari shows the panel's top, not its bottom. */
+    overflow: clip;
 }
 .arcade-section.is-expanded > .arcade-clip {
     overflow: visible;
