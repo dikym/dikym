@@ -1,9 +1,9 @@
 {
-    "rewrites": [
+    "routes": [
         {
-            "source": "/",
+            "src": "/",
             "has": [{ "type": "host", "value": "quorzak.dikym.me" }],
-            "destination": "/quorzak/index.html"
+            "dest": "/quorzak/index.html"
         }
     ]
 }
