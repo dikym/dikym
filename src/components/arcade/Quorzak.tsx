@@ -1078,7 +1078,10 @@ const Quorzak: React.FC<QuorzakProps> = ({
                                 >
                                     <div className="arcade-keyboard-hint">
                                         <span>
-                                            <kbd aria-label="Left arrow">
+                                            <kbd>
+                                                <span className="sr-only">
+                                                    Left arrow
+                                                </span>
                                                 <svg
                                                     width="16"
                                                     height="16"
@@ -1093,7 +1096,10 @@ const Quorzak: React.FC<QuorzakProps> = ({
                                                     <path d="M19 12H5m7-7-7 7 7 7" />
                                                 </svg>
                                             </kbd>
-                                            <kbd aria-label="Right arrow">
+                                            <kbd>
+                                                <span className="sr-only">
+                                                    Right arrow
+                                                </span>
                                                 <svg
                                                     width="16"
                                                     height="16"
@@ -1112,7 +1118,10 @@ const Quorzak: React.FC<QuorzakProps> = ({
                                             <kbd>D</kbd> Move
                                         </span>
                                         <span>
-                                            <kbd aria-label="Up arrow">
+                                            <kbd>
+                                                <span className="sr-only">
+                                                    Up arrow
+                                                </span>
                                                 <svg
                                                     width="16"
                                                     height="16"
