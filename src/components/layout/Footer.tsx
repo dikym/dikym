@@ -48,7 +48,7 @@ const Footer: React.FC<FooterProps> = ({ onScrollToSection }) => {
             <div ref={wrapRef} className="wrap">
                 <div className="grid grid-cols-2 gap-[30px] lg:grid-cols-[1.4fr_1fr_1fr_1fr] lg:gap-10">
                     <div className="col-span-2 lg:col-span-1">
-                        <h4 className={heading}>Contact</h4>
+                        <h2 className={heading}>Contact</h2>
                         <a
                             href="mailto:hello@dikym.me"
                             className="text-ink text-[26px] font-medium tracking-[-0.02em]"
@@ -60,7 +60,7 @@ const Footer: React.FC<FooterProps> = ({ onScrollToSection }) => {
                         </p>
                     </div>
                     <div>
-                        <h4 className={heading}>Sitemap</h4>
+                        <h2 className={heading}>Sitemap</h2>
                         {sitemap.map(item => (
                             <button
                                 key={item.id}
@@ -72,11 +72,11 @@ const Footer: React.FC<FooterProps> = ({ onScrollToSection }) => {
                         ))}
                     </div>
                     <div>
-                        <h4 className={heading}>Elsewhere</h4>
+                        <h2 className={heading}>Elsewhere</h2>
                         <SocialLinks />
                     </div>
                     <div>
-                        <h4 className={heading}>Based in</h4>
+                        <h2 className={heading}>Based in</h2>
                         <p className="text-ink-2 py-1 text-[15px]">
                             Bali, Indonesia
                         </p>
