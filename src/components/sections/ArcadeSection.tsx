@@ -53,9 +53,17 @@ const ArcadeSection = () => {
     );
     // The font is ~3 KB gzipped: load it with the page, so the error bubble has it offline too.
     useEffect(() => {
-        void document.fonts
-            .load('14px "Quorzak"')
-            .catch(error => console.error("Arcade font preload:", error));
+        const load = () =>
+            void document.fonts
+                .load('14px "Quorzak"')
+                .catch(error => console.error("Arcade font preload:", error));
+        // Idle, so it stays off the critical path (Safari lacks requestIdleCallback).
+        if (!("requestIdleCallback" in window)) {
+            const id = setTimeout(load, 2000);
+            return () => clearTimeout(id);
+        }
+        const id = requestIdleCallback(load);
+        return () => cancelIdleCallback(id);
     }, []);
     // The footer alien sizes itself like the game, which fits below the navbar.
     useLayoutEffect(() => {

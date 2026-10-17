@@ -34,8 +34,12 @@ const Curtain: React.FC = () => {
         let fontsReady = false;
         let frame = 0;
 
+        // Only the page fonts: document.fonts.ready would also wait for the arcade font.
         Promise.all([
-            document.fonts.ready,
+            Promise.allSettled([
+                document.fonts.load('1em "General Sans"'),
+                document.fonts.load('1em "Pixelify Sans"'),
+            ]),
             new Promise(r => setTimeout(r, FILL_MS)),
         ]).then(() => (fontsReady = true));
 
