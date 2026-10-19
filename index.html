@@ -19,16 +19,9 @@
         />
 
         <!-- Primary Meta Tags -->
-        <title>
-            Diky Maulidan Ridho A - Fullstack Web Developer | Next.js, Svelte,
-            Laravel, Go
-        </title>
+        <title>Diky Maulidan Ridho A - Fullstack Web Developer</title>
         <meta
-            content="Diky Maulidan Ridho A - Fullstack Web Developer | Next.js, Svelte, Laravel, Go"
-            name="title"
-        />
-        <meta
-            content="Fullstack web developer based in Bali, Indonesia with 3 years experience. I build fast, accessible web apps end to end — frontends in Next.js and Svelte, backed by APIs and databases in Laravel and Go."
+            content="Fullstack web developer in Bali, Indonesia. I build fast, accessible web apps end to end with Next.js, Svelte, Laravel and Go."
             name="description"
         />
         <meta
@@ -48,7 +41,7 @@
             property="og:title"
         />
         <meta
-            content="Fullstack web developer based in Bali. I build fast, accessible web apps end to end — frontends in Next.js and Svelte, backed by APIs and databases in Laravel and Go."
+            content="Fullstack web developer in Bali, Indonesia. I build fast, accessible web apps end to end with Next.js, Svelte, Laravel and Go."
             property="og:description"
         />
         <meta content="https://dikym.me/og-image.png" property="og:image" />
@@ -64,24 +57,43 @@
             property="og:site_name"
         />
 
-        <!-- Twitter -->
-        <meta content="summary_large_image" property="twitter:card" />
-        <meta content="https://dikym.me/" property="twitter:url" />
+        <!-- Twitter: X reads these by name, not property -->
+        <meta content="summary_large_image" name="twitter:card" />
         <meta
             content="Diky Maulidan Ridho A - Fullstack Web Developer"
-            property="twitter:title"
+            name="twitter:title"
         />
         <meta
-            content="Fullstack web developer based in Bali. I build fast, accessible web apps end to end — frontends in Next.js and Svelte, backed by APIs and databases in Laravel and Go."
-            property="twitter:description"
+            content="Fullstack web developer in Bali, Indonesia. I build fast, accessible web apps end to end with Next.js, Svelte, Laravel and Go."
+            name="twitter:description"
         />
+        <meta content="https://dikym.me/og-image.png" name="twitter:image" />
         <meta
-            content="https://dikym.me/og-image.png"
-            property="twitter:image"
+            content="Diky Maulidan Ridho A - Fullstack Web Developer"
+            name="twitter:image:alt"
         />
 
         <!-- Additional SEO -->
         <link href="https://dikym.me/" rel="canonical" />
+        <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@type": "Person",
+                "name": "Diky Maulidan Ridho A",
+                "url": "https://dikym.me/",
+                "image": "https://dikym.me/og-image.png",
+                "jobTitle": "Fullstack Web Developer",
+                "address": {
+                    "@type": "PostalAddress",
+                    "addressRegion": "Bali",
+                    "addressCountry": "ID"
+                },
+                "sameAs": [
+                    "https://github.com/dikym",
+                    "https://linkedin.com/in/dikym"
+                ]
+            }
+        </script>
         <meta content="#FFFCF0" name="theme-color" />
         <script>
             try {
@@ -91,7 +103,8 @@
         </script>
 
         <link href="/src/style.css" rel="stylesheet" />
-        <link href="/favicon.ico" rel="icon" type="image/x-icon" />
+        <link href="/icons/alien.svg" rel="icon" type="image/svg+xml" />
+        <link href="/favicon.ico" rel="icon" sizes="32x32" />
         <link
             href="/favicon-32x32.png"
             rel="icon"
@@ -112,7 +125,10 @@
         <link href="/site.webmanifest" rel="manifest" />
     </head>
     <body>
-        <div id="root"></div>
+        <!-- Static h1 for crawlers that skip JS; React replaces it on mount -->
+        <div id="root">
+            <h1 class="sr-only">Fullstack web developer based in Bali.</h1>
+        </div>
         <script src="/src/main.tsx" type="module"></script>
     </body>
 </html>
