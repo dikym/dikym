@@ -88,7 +88,7 @@ const ProjectsSection: React.FC<ProjectsSectionProps> = ({ projects }) => {
                             </div>
                         </aside>
 
-                        <div className="dot-grid bg-page relative flex min-h-[430px] flex-col px-[22px] pt-[18px] pb-4">
+                        <div className="dot-grid bg-page relative flex h-[430px] flex-col px-[22px] pt-[18px] pb-4">
                             <ProjectCard
                                 key={selected}
                                 project={current}

@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from "react";
 import type { Project } from "../../types";
 import Arrow from "./Arrow.tsx";
 
@@ -9,9 +10,33 @@ interface ProjectCardProps {
 // Canvas body of the project console; re-keyed per project so it pops in.
 const ProjectCard: React.FC<ProjectCardProps> = ({ project, index }) => {
     const href = project.url ? `https://${project.url}` : undefined;
+    const boxRef = useRef<HTMLDivElement>(null);
+    const textRef = useRef<HTMLParagraphElement>(null);
+
+    // Keep the normal size; shrink only while the text overflows its box.
+    useLayoutEffect(() => {
+        const box = boxRef.current;
+        const text = textRef.current;
+        if (!box || !text) return;
+        const fit = (): void => {
+            text.style.fontSize = "";
+            let size = parseFloat(getComputedStyle(text).fontSize);
+            while (
+                size > 12 &&
+                text.offsetTop + text.offsetHeight > box.clientHeight
+            ) {
+                size -= 0.5;
+                text.style.fontSize = `${size}px`;
+            }
+        };
+        fit();
+        const ro = new ResizeObserver(fit);
+        ro.observe(box);
+        return () => ro.disconnect();
+    }, [project.description]);
 
     return (
-        <div className="animate-pop relative flex flex-1 flex-col">
+        <div className="animate-pop relative flex min-h-0 flex-1 flex-col">
             <div className="eyebrow text-ink-3 flex justify-between">
                 <span>
                     {String(index + 1).padStart(2, "0")} · {project.title}
@@ -19,14 +44,17 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, index }) => {
                 <span>{href ? "Live" : "Private"}</span>
             </div>
 
-            <div className="mt-[clamp(28px,5vh,48px)] grid gap-8 min-[961px]:px-[clamp(0px,2vw,18px)] lg:grid-cols-[1.4fr_1fr] lg:gap-16">
-                <div>
+            <div className="mt-[clamp(28px,5vh,48px)] mb-6 grid min-h-0 flex-1 gap-8 max-lg:grid-rows-[minmax(0,1fr)_auto] min-[961px]:px-[clamp(0px,2vw,18px)] lg:grid-cols-[1.4fr_1fr] lg:gap-16">
+                <div ref={boxRef} className="relative min-h-0 overflow-hidden">
                     <span className="eyebrow text-ink-3">Purpose</span>
-                    <p className="mt-2.5 max-w-[46ch] text-[clamp(17px,1.4vw,21px)] leading-[1.45] tracking-[-0.01em] md:max-w-none lg:max-w-[46ch]">
+                    <p
+                        ref={textRef}
+                        className="mt-2.5 max-w-[46ch] text-[clamp(17px,1.4vw,21px)] leading-[1.45] tracking-[-0.01em] md:max-w-none lg:max-w-[46ch]"
+                    >
                         {project.description}
                     </p>
                 </div>
-                <div>
+                <div className="self-end">
                     <span className="eyebrow text-ink-3">Stack</span>
                     <div className="mt-2.5 flex flex-wrap gap-1.5">
                         {project.tech.map(tech => (
